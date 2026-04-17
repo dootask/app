@@ -1,0 +1,80 @@
+{
+  "expo": {
+    "name": "DooTask",
+    "slug": "dootask",
+    "version": "1.7.23",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "dootask",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.dootask.task",
+      "infoPlist": {
+        "NSCameraUsageDescription": "用于扫码、拍照和视频会议",
+        "NSPhotoLibraryUsageDescription": "用于选择和上传照片",
+        "NSMicrophoneUsageDescription": "用于语音和视频会议",
+        "NSPhotoLibraryAddUsageDescription": "用于保存图片到相册"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.dootask.task",
+      "permissions": [
+        "CAMERA",
+        "VIBRATE",
+        "RECORD_AUDIO",
+        "READ_MEDIA_IMAGES",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ],
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-dev-client",
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "用于选择和上传照片",
+          "cameraPermission": "用于拍照和录制视频"
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "用于选择和上传照片",
+          "savePhotosPermission": "用于保存图片到相册",
+          "isAccessMediaLocationEnabled": true
+        }
+      ],
+      [
+        "react-native-vision-camera",
+        {
+          "cameraPermissionText": "用于扫码和拍照",
+          "enableCodeScanner": true
+        }
+      ],
+      "./plugins/withWebAssets"
+    ],
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ]
+  }
+}
