@@ -1,7 +1,8 @@
 # DooTask 移动端迁移方案：EEUI → React Native (Expo)
 
-> 版本：v1.1 | 日期：2026-04-16
+> 版本：v1.2 | 日期：2026-04-17
 > 目标：将移动客户端从 EEUI WebView 壳迁移至 Expo (React Native)，保持 WebView + 原生桥接架构不变
+> 说明：文档中的代码示例为架构参考，实施时需根据实际依赖版本调整 import 和类型定义
 
 ---
 
@@ -231,6 +232,7 @@
       "permissions": ["CAMERA", "VIBRATE", "RECORD_AUDIO", "READ_MEDIA_IMAGES"]
     },
     "plugins": [
+      "./plugins/withWebAssets",
       ["react-native-vision-camera", { "enableCodeScanner": true }],
       "expo-image-picker",
       "expo-clipboard",
@@ -494,7 +496,7 @@ export function WebViewScreen() {
   return (
     <WebView
       ref={webViewRef}
-      source={{ uri: 'file:///path/to/public/index.html' }}
+      source={{ uri: `${getLocalServerUrl()}/index.html#/` }}
       injectedJavaScriptBeforeContentLoaded={injectedJS}
       onMessage={onMessage}
       // ... 其他配置
@@ -564,7 +566,7 @@ eeuiAppGetThemeName() {
 | `keepScreenOn()` | 屏幕常亮 | `expo-keep-awake` `activateKeepAwakeAsync()` | 无返回值 |
 | `keepScreenOff()` | 关闭常亮 | `expo-keep-awake` `deactivateKeepAwake()` | 无返回值 |
 | **导航** | | | |
-| `openPage()` | 打开新页面 | 在 WebView 内处理或 `Linking.openURL()` | 视具体场景 |
+| `openPage()` | 打开新页面 | 新 RN Screen + 独立 WebView（详见 13.5 节） | 多 WebView 页面栈 |
 | `openWeb()` | 系统浏览器打开 | `expo-linking` `Linking.openURL()` | 无返回值 |
 | `goDesktop()` | 返回桌面 | `BackHandler.exitApp()` (Android) | Android only |
 | `setPageBackPressed()` | 拦截返回键 | `BackHandler` 事件监听 | Android only |
@@ -702,6 +704,7 @@ export function ScannerScreen({ onScanned, onClose }: ScannerScreenProps) {
 ```tsx
 // src/bridge/handlers/media.ts
 import * as ImagePicker from 'expo-image-picker';
+import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system';
 
 export async function getLatestPhoto() {
@@ -1045,7 +1048,7 @@ cd dootask-app && npm install
 # 2. 构建 DooTask Vue SPA 并复制到 Expo 项目
 cd ~/workspaces/dootask
 ./cmd prod
-cp -r public/* ~/workspaces/dootask-app/public/
+cp -r public/* ~/workspaces/dootask-app/assets/web/
 
 # 3. 启动 Expo 开发（需要 dev-client，因为有 UMeng native module）
 cd ~/workspaces/dootask-app
@@ -1075,7 +1078,7 @@ appbuild|buildapp)
     npm_run prod
     # 2. 输出提示（不再自动复制到子模块）
     echo "前端资源已构建到 public/ 目录"
-    echo "请手动复制到 dootask-app 项目：cp -r public/* ~/workspaces/dootask-app/public/"
+    echo "请手动复制到 dootask-app 项目：cp -r public/* ~/workspaces/dootask-app/assets/web/"
     ;;
 # eeui 命令可以移除
 ```
@@ -1811,23 +1814,9 @@ callback({
 })
 ```
 
-RN 侧扫码完成后，通过 `bridge_event` 推送结果（因为扫码是异步的覆盖层，不是即时返回）：
+**扫码是单次回调**（`eeui.js:140` 只在 `status === 'success'` 时调用一次 callback），不需要多次回调机制。
 
-```typescript
-// 扫码成功时
-webViewRef.current?.injectJavaScript(`
-  window.dispatchEvent(new CustomEvent('bridge_event', {
-    detail: {
-      type: 'bridge_event',
-      event: 'scanResult',
-      data: { status: 'success', text: '${scannedValue}' }
-    }
-  }));
-  true;
-`);
-```
-
-需要在 `injectedJS` 中增加对 `scanResult` 事件的监听，将结果路由到 `openScaner` 的 callback。
+RN 侧实现：`createBridgeHandler` 中的 `openScaner` case 返回一个 Promise，扫码完成后 resolve `{ status: 'success', text: '扫码结果' }`。Proxy 层自动将 resolve 的值传给 callback。详见 17.4 节和 17.5 节的完整流程。
 
 #### getLatestPhoto
 
@@ -1934,13 +1923,15 @@ callback({
 #### getDeviceInfo
 
 ```javascript
-// EEUI 回调格式
+// EEUI 回调格式（必须包含以下全部字段，App.vue:234 依赖）
 callback({
   status: 'success',
-  brand: 'Apple',         // 品牌
-  model: 'iPhone 14',     // 型号
-  system: 'iOS 17.0',     // 操作系统
-  // ... 其他字段
+  brand: 'Apple',              // 品牌
+  model: 'iPhone16,1',         // 型号标识
+  modelName: 'iPhone 15 Pro',  // 型号名称
+  deviceName: 'My iPhone',     // 设备名称
+  systemName: 'iOS',           // 系统名称
+  systemVersion: '17.0',       // 系统版本
 })
 ```
 
@@ -2456,10 +2447,17 @@ import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { handleOpenPage } from './handlers/navigation';
+import { handleSendMessage } from './handlers/nativeCommands';
 import { getLatestPhoto, uploadPhoto } from './handlers/media';
 import { setVariate, getVariate, setCachesString, getCachesString, syncVariateToWebView } from './handlers/storage';
 // 全局状态
 const activeWebViews = new Map<string, RefObject<WebView>>();
+
+interface AppState {
+  apiUrl: string;
+  userId: string;
+  userToken: string;
+}
 
 interface BridgeContext {
   webViewRef: RefObject<WebView>;
@@ -2467,6 +2465,7 @@ interface BridgeContext {
   insets: EdgeInsets;
   isFirstPage: boolean;
   pageId: string;
+  appState: AppState;  // sendMessage 的 initApp 命令会填充此字段
   // 回调：触发扫码页面（由 Screen 组件提供）
   onRequestScan?: (callback: (result: string) => void) => void;
   // 回调：控制 WebView scrollEnabled（由 Screen 组件提供）
@@ -2534,8 +2533,11 @@ async function routeRequest(msg: BridgeRequest, ctx: BridgeContext): Promise<any
         return {
           status: 'success',
           brand: Device.brand || 'Unknown',
-          model: Device.modelName || 'Unknown',
-          system: `${Platform.OS} ${Device.osVersion}`,
+          model: Device.modelId || Device.modelName || 'Unknown',
+          modelName: Device.modelName || 'Unknown',
+          deviceName: Device.deviceName || 'Unknown',
+          systemName: Platform.OS === 'ios' ? 'iOS' : 'Android',
+          systemVersion: Device.osVersion || '',
         };
 
       // ---- 键盘 ----
@@ -2892,6 +2894,7 @@ true;
 | `openUrl` | 原生层打开 URL | 多处 | `Linking.openURL()` |
 | `setPageData` | 设置页面数据 | 多处 | 通过 navigation params 传递 |
 | `createTarget` | 创建新窗口 | App.vue | 走 `openAppChildPage` 逻辑 |
+| `updateTheme` | 通知原生层主题变化 | store/actions.js | 更新 StatusBar 样式 + 通知其他 WebView |
 | `getNotificationPermission` | 查询通知权限状态 | App.vue | `Notifications.getPermissionsAsync()` |
 | `gotoSetting` | 打开系统设置 | 多处 | `Linking.openSettings()` |
 | `userChatList` | 用户聊天列表通知 | store/actions.js | 保存聊天数据到内存供原生层使用 |
