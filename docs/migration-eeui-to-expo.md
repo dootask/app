@@ -69,7 +69,7 @@
 │                                              │
 │  资源加载: 本地打包（App 内 assets）           │
 │  JS Bridge: postMessage/onMessage            │
-│  推送: iOS APNs + Android UMeng              │
+│  推送: UMeng (iOS + Android)                 │
 │  构建: EAS Build                             │
 └──────────────────────────────────────────────┘
 ```
@@ -180,7 +180,7 @@
 │   │   │   └── ui.ts              # Alert/Toast
 │   │   └── injectedJS.ts          # 注入到 WebView 的 JS 代码
 │   ├── services/
-│   │   ├── push.ts                # 推送注册（iOS: expo-notifications, Android: UMeng）
+│   │   ├── push.ts                # 推送注册（iOS + Android 均用 UMeng）
 │   │   └── update.ts              # OTA 热更新
 │   └── utils/
 │       └── userAgent.ts           # UA 构建
@@ -742,77 +742,28 @@ export async function uploadPhoto(params) {
 - 分 iOS (APNs) / Android (友盟通道 + 厂商通道) 发送
 - 配置存储在系统设置 `appPushSetting`
 
-### 6.2 确定方案：iOS expo-notifications + Android UMeng（混合推送）
+### 6.2 确定方案：iOS + Android 均使用 UMeng
 
-FCM 在中国大陆不可用，因此 Android 必须保留 UMeng（含厂商通道：小米、OPPO、Vivo、华为等）。iOS 可以使用 `expo-notifications`（底层直接走 APNs）。
+FCM 在中国大陆不可用，Android 必须保留 UMeng。iOS 初期也继续使用 UMeng（通过 Config Plugin 集成），与 Android 保持一致，**后端推送逻辑完全不变**。
+
+> 后续稳定后可考虑 iOS 切换到 APNs 直推，但那是优化项，不在本次迁移范围内。
 
 ```
-┌─────────────────────────────────────────────────┐
-│                   后端推送服务                     │
-│                                                   │
-│  ┌──────────────────┐  ┌──────────────────────┐  │
-│  │  iOS: APNs 直推   │  │  Android: UMeng SDK  │  │
-│  │  (expo-notifications│  │  (保留现有逻辑)       │  │
-│  │   push token)     │  │  (alias 别名推送)     │  │
-│  └──────────────────┘  └──────────────────────┘  │
-└─────────────────────────────────────────────────┘
-          │                        │
-          ▼                        ▼
-   ┌────────────┐          ┌────────────┐
-   │  iOS 设备   │          │ Android 设备│
-   │  APNs      │          │ UMeng+厂商  │
-   └────────────┘          └────────────┘
+┌──────────────────────────────────────┐
+│           后端推送服务（不变）          │
+│                                      │
+│   UmengAlias::pushMsgToAlias()      │
+│   iOS: UMeng → APNs                 │
+│   Android: UMeng → 厂商通道          │
+└──────────────────────────────────────┘
+          │                │
+          ▼                ▼
+   ┌────────────┐   ┌────────────┐
+   │  iOS 设备   │   │ Android 设备│
+   └────────────┘   └────────────┘
 ```
 
-### 6.3 iOS 端实现（expo-notifications）
-
-App 端：
-```typescript
-import * as Notifications from 'expo-notifications';
-import Constants from 'expo-constants';
-
-async function registerForPushNotifications() {
-  const { status } = await Notifications.requestPermissionsAsync();
-  if (status !== 'granted') return null;
-
-  // 获取 Expo Push Token（底层是 APNs device token）
-  const token = await Notifications.getExpoPushTokenAsync({
-    projectId: Constants.expoConfig?.extra?.eas?.projectId,
-  });
-
-  // 或者直接获取 APNs device token（如果后端直接对接 APNs）
-  const deviceToken = await Notifications.getDevicePushTokenAsync();
-
-  return deviceToken.data; // APNs device token
-}
-```
-
-后端改造（iOS 部分）：
-
-```php
-// app/Models/UmengAlias.php — pushMsgToAlias() 方法
-// iOS 分支改为直接使用 APNs HTTP/2 推送，不再经过 UMeng
-case 'ios':
-    // 新方案：直接 APNs 推送
-    // 使用 edamov/pushok 或 laravel-notification-channels/apn
-    $apns = new \Pushok\Client($authProvider, $production = true);
-    $alert = \Pushok\Payload\Alert::create()
-        ->setTitle($title)
-        ->setSubtitle($subtitle)
-        ->setBody($body);
-    $payload = \Pushok\Payload::create()
-        ->setAlert($alert)
-        ->setSound('default')
-        ->setBadge($badge);
-    $notification = new \Pushok\Notification($payload, $deviceToken);
-    $apns->addNotification($notification);
-    $apns->push();
-    break;
-```
-
-> 也可以继续用 UMeng 推 iOS，但既然 Expo 原生支持 APNs，直接推更简单，少一层依赖。
-
-### 6.4 Android 端实现（保留 UMeng）
+### 6.3 Expo 端集成 UMeng（iOS + Android 共用）
 
 需要为 Expo 创建 **Config Plugin** 集成 UMeng SDK：
 
@@ -873,59 +824,33 @@ export default withUmengPush;
 // - getDeviceToken() — 获取 UMeng device token
 ```
 
-#### 6.4.3 App 端注册
+#### 6.3.3 App 端注册
 
 ```typescript
 // src/services/push.ts
-import { Platform } from 'react-native';
-import * as Notifications from 'expo-notifications';
 import { NativeModules } from 'react-native';
 
 const { UmengPush } = NativeModules;
 
 export async function registerPush(userId: string) {
-  if (Platform.OS === 'ios') {
-    // iOS: expo-notifications + APNs
-    const { status } = await Notifications.requestPermissionsAsync();
-    if (status !== 'granted') return;
-    const token = await Notifications.getDevicePushTokenAsync();
-    // 上报 APNs token 到后端
-    await registerDeviceToServer({
-      push_token: token.data,
-      platform: 'ios',
-      push_type: 'apns',
-    });
-  } else {
-    // Android: UMeng
-    await UmengPush.initPush();
-    await UmengPush.setAlias(String(userId), 'userid');
-    // UMeng alias 注册到后端（复用现有 UmengAlias 逻辑）
-  }
+  // iOS 和 Android 都通过 UMeng 注册
+  await UmengPush.initPush();
+  await UmengPush.setAlias(String(userId), 'userid');
+  // 别名注册后，后端通过现有 api/users/umeng/alias 接口管理
+}
+
+export async function unregisterPush() {
+  await UmengPush.removeAlias();
 }
 ```
 
-### 6.5 后端改造要点
+### 6.4 后端改造
 
-1. **`UmengAlias` 模型**：Android 部分保持不变；iOS 部分增加 APNs 直推通道
-2. **新增 `PushToken` 模型**（可选）：存储 iOS APNs device token，与 `UmengAlias` 并行
-3. **`pushMsgToAlias()` 方法**：iOS 分支改为 APNs 推送，Android 分支不变
-4. **推送配置**：`appPushSetting` 增加 iOS APNs 证书/Key 配置项
-5. **Composer 依赖**：新增 `edamov/pushok`（APNs HTTP/2 客户端）
+**后端推送逻辑完全不变**。现有的 `UmengAlias` 模型、`pushMsgToAlias()` 方法、`appPushSetting` 配置全部保持原样。
 
-### 6.6 设备注册 API
-
-App 启动时调用后端 API 注册设备：
-
-```
-POST /api/users/device/register
-{
-  "push_token": "xxx",           // iOS: APNs device token; Android: UMeng alias
-  "platform": "ios|android",
-  "push_type": "apns|umeng",     // 新增字段，区分推送通道
-  "device_hash": "...",
-  "app_version": "1.7.23"
-}
-```
+现有 API 接口也不变：
+- `api/users/umeng/alias` — 注册/删除推送别名
+- `api/users/device/edit` — 更新设备信息
 
 ---
 
@@ -989,15 +914,9 @@ if (preg_match("/android_dootask_expo/i", $ua)) {
 
 同理增加 `dootask_expo` 的识别。
 
-### 7.2 推送相关（混合方案改造）
+### 7.2 推送相关
 
-采用 iOS APNs 直推 + Android UMeng 的混合方案，后端需要以下改动：
-
-1. **`UmengAlias` 模型的 iOS 分支**：改为 APNs HTTP/2 直推（详见第 6.3 节）
-2. **新增 Composer 依赖**：`edamov/pushok`（APNs HTTP/2 客户端）
-3. **推送配置**：`appPushSetting` 增加 APNs Key/证书配置项
-4. **可选：新增 `PushToken` 模型**：存储 iOS APNs device token（也可复用 `UmengAlias` 表，增加 `push_type` 字段区分）
-5. **Android 部分保持不变**：继续使用 UMeng alias 推送
+**后端不需要改动**。iOS 和 Android 都继续使用 UMeng 推送，现有的 `UmengAlias` 模型、推送逻辑、配置全部保持原样。
 
 ### 7.3 后端无需改动的部分
 
@@ -1343,17 +1262,15 @@ jobs:
 - [ ] WebView 快照：`react-native-view-shot` 集成
 - [ ] 验证：扫码、拍照、选图、上传在**无 Google 服务的 Android 真机**上正常工作
 
-### Phase 4：推送通知 — 混合方案（3-4 天）
+### Phase 4：推送通知 — UMeng 集成（3-4 天）
 
-- [ ] iOS：集成 `expo-notifications`，获取 APNs device token
-- [ ] Android：创建 UMeng Config Plugin (`plugins/withUmengPush.ts`)
-- [ ] Android：编写 UMeng Native Module (`UmengPushModule.kt`)
-- [ ] 统一推送注册服务 (`src/services/push.ts`)
-- [ ] 后端：`UmengAlias` iOS 分支改为 APNs 直推（或保留 UMeng iOS 作为过渡）
-- [ ] 后端：新增 APNs 推送依赖 (`edamov/pushok`)
-- [ ] 设备注册 API 对接（新增 `push_type` 字段）
-- [ ] Badge 数量同步
-- [ ] 验证：iOS APNs 推送 + Android UMeng 推送均正常到达
+- [ ] 创建 UMeng Config Plugin (`plugins/withUmengPush.ts`，详见 6.3.1 节)
+- [ ] 编写 UMeng Native Module - Kotlin (`UmengPushModule.kt`，详见 6.3.2 节)
+- [ ] 编写 UMeng Native Module - Swift（iOS 端 UMeng SDK 初始化）
+- [ ] 统一推送注册服务 (`src/services/push.ts`，详见 6.3.3 节)
+- [ ] 对接 `sendMessage` 的 `setUmengAlias`/`delUmengAlias` 命令（详见 17.7 节）
+- [ ] Badge 数量同步（`sendMessage` 的 `setBdageNotify` 命令）
+- [ ] 验证：iOS + Android 推送均正常到达，点击通知可跳转
 
 ### Phase 5：前端 + 后端适配（1-2 天）
 
@@ -2388,8 +2305,7 @@ App Launch
     │         └── 如果已登录 → 进入主界面
     │
     └─ 3. 推送注册（登录成功后，由 WebView 通过桥接通知 RN）
-          ├── iOS: expo-notifications → APNs token → 上报后端
-          └── Android: UMeng SDK → setAlias(userId) → 上报后端
+          └── iOS + Android: UMeng SDK → setAlias(userId)（通过 sendMessage 的 setUmengAlias 触发）
 ```
 
 ### 17.2 Vue SPA 本地资源如何打包进 App
@@ -2968,7 +2884,7 @@ true;
 | action | 用途 | 调用位置 | Expo 实现 |
 |--------|------|----------|-----------|
 | `initApp` | 登录后初始化原生层（传 apiUrl/userid/token/language/userAgent） | App.vue:224 | Bridge handler：保存用户信息，初始化推送 |
-| `setUmengAlias` | 设置 UMeng 推送别名 | store/actions.js | Android: UmengPush.setAlias()；iOS: 注册 APNs token |
+| `setUmengAlias` | 设置 UMeng 推送别名 | store/actions.js | UmengPush.setAlias()（iOS + Android 共用） |
 | `delUmengAlias` | 删除 UMeng 推送别名（退出登录时） | store/actions.js | Android: UmengPush.removeAlias() |
 | `windowSize` | 通知原生层当前 WebView 尺寸 | App.vue:805 | 可忽略（Expo 自动管理） |
 | `setVibrate` | 触发震动 | Notification.vue:72 | `Haptics.notificationAsync()` |
@@ -3010,7 +2926,7 @@ export async function handleSendMessage(data: any, ctx: BridgeContext): Promise<
       return null;
 
     case 'setUmengAlias':
-      // Android: UMeng; iOS: APNs
+      // iOS + Android 都用 UMeng
       await registerPush(params.alias || params.userid);
       return null;
 

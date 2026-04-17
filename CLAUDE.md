@@ -39,7 +39,7 @@ DooTask 移动客户端，使用 Expo (React Native) 构建。本质是一个原
 - **本地资源加载**：Vue SPA 打包进 App assets，通过 App 内 HTTP Server 加载（非 file://）
 - **多 WebView**：主页面（firstPage）+ 子页面（openPage 创建新 RN Screen + 独立 WebView）
 - **JS 桥接**：通过 `postMessage`/`onMessage` + 注入 `requireModuleJs` polyfill 实现兼容
-- **推送**：iOS 使用 expo-notifications (APNs)，Android 使用 UMeng（国内无 FCM）
+- **推送**：iOS + Android 均使用 UMeng（国内无 FCM，通过 Config Plugin + Native Module 集成）
 - **扫码**：react-native-vision-camera（不依赖 Google 服务）
 - **服务器地址**：由 Vue SPA 自己管理（登录页输入，localForage 存储），原生层不处理
 
@@ -51,8 +51,7 @@ DooTask 移动客户端，使用 Expo (React Native) 构建。本质是一个原
 - react-native-webview（加载 Vue SPA）
 - react-native-static-server（App 内 HTTP Server 加载本地资源）
 - react-native-vision-camera（扫码，不依赖 Google 服务）
-- expo-notifications（iOS 推送，走 APNs）
-- UMeng SDK（Android 推送，Expo Config Plugin + Kotlin Native Module）
+- UMeng SDK（iOS + Android 推送，通过 Expo Config Plugin + Native Module 集成）
 
 ## 开发命令
 
