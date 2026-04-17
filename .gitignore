@@ -36,6 +36,19 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
-# generated native folders
-/ios
-/android
+# Native build outputs (source is committed, artifacts are not)
+android/.gradle/
+android/.cxx/
+android/.idea/
+android/build/
+android/app/build/
+android/app/release/
+android/captures/
+android/local.properties
+ios/Pods/
+ios/build/
+ios/DerivedData/
+ios/*.xcworkspace/xcuserdata/
+ios/*.xcodeproj/xcuserdata/
+ios/*.xcodeproj/project.xcworkspace/xcuserdata/
+ios/xcuserstate

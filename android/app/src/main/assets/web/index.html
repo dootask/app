@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>DooTask Placeholder</title>
+    <script src="./config.js"></script>
+    <style>
+      body { font-family: -apple-system, system-ui, sans-serif; padding: 24px; color: #333; }
+      code { background: #eee; padding: 2px 6px; border-radius: 4px; }
+      pre { background: #f7f7f7; padding: 12px; border-radius: 6px; overflow: auto; }
+      button { padding: 8px 14px; margin-right: 8px; margin-bottom: 8px; }
+    </style>
+  </head>
+  <body>
+    <h2>DooTask Expo Placeholder</h2>
+    <p>这是 Phase 1 的占位页。把 DooTask 的 Vue SPA 产物复制到 <code>assets/web/</code> 后会替换此页。</p>
+    <p><strong>systemInfo</strong>:</p>
+    <pre id="sys"></pre>
+    <p><strong>桥接自测</strong></p>
+    <button onclick="testVersion()">eeui.getVersion()</button>
+    <button onclick="testAlert()">eeui.alert()</button>
+    <button onclick="testToast()">eeui.toast()</button>
+    <button onclick="testOpen()">eeui.openPage() /sub</button>
+    <pre id="log"></pre>
+    <script>
+      var sys = document.getElementById('sys');
+      sys.textContent = JSON.stringify(window.systemInfo || null, null, 2);
+
+      function log(label, value) {
+        var el = document.getElementById('log');
+        el.textContent += '[' + new Date().toISOString().slice(11, 19) + '] ' + label + ': ' + JSON.stringify(value) + '\n';
+      }
+
+      function whenReady(fn) {
+        var t = 0;
+        var iv = setInterval(function () {
+          if (window.__EXPO_BRIDGE_READY__) {
+            clearInterval(iv);
+            fn();
+          } else if (++t > 50) {
+            clearInterval(iv);
+            log('bridge', 'not ready after 10s');
+          }
+        }, 200);
+      }
+
+      function testVersion() {
+        whenReady(function () {
+          var eeui = window.requireModuleJs('eeui');
+          eeui.getVersion().then(function (v) { log('getVersion', v); });
+        });
+      }
+
+      function testAlert() {
+        whenReady(function () {
+          var eeui = window.requireModuleJs('eeui');
+          eeui.alert({ title: '测试', message: '这是桥接 Alert', buttons: ['取消', '确定'] }, function (idx) {
+            log('alert callback', idx);
+          });
+        });
+      }
+
+      function testToast() {
+        whenReady(function () {
+          var eeui = window.requireModuleJs('eeui');
+          eeui.toast({ message: '桥接 Toast ok' });
+          log('toast', 'sent');
+        });
+      }
+
+      function testOpen() {
+        whenReady(function () {
+          var eeui = window.requireModuleJs('eeui');
+          eeui.openPage({
+            pageTitle: '子页面',
+            params: { url: '/index.html' }
+          });
+          log('openPage', 'requested');
+        });
+      }
+    </script>
+  </body>
+</html>
