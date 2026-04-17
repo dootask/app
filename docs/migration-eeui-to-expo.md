@@ -583,7 +583,7 @@ eeuiAppGetThemeName() {
 | `setVariate()` / `getVariate()` | 全局变量 | 内存 Map（RN 侧） | 同步→异步 |
 | `setCachesString()` / `getCachesString()` | 持久缓存 | `expo-secure-store` 或 `AsyncStorage` | 同步→异步 |
 | **WebView 控制** | | | |
-| `sendMessage()` | 发消息给 WebView | `webViewRef.postMessage()` | RN 原生支持 |
+| `sendMessage()` | WebView 给原生层发命令 | `handleSendMessage()`（详见 17.7 节） | 命令总线，18 个 action |
 | `setUrl()` | 设置 WebView URL | 更新 WebView `source` prop | RN 状态驱动 |
 | `createSnapshot()` | WebView 截图 | `react-native-view-shot` | 需额外库 |
 | `showSnapshot()` / `hideSnapshot()` | 显示/隐藏截图 | RN Image 组件覆盖层 | 自行实现 |
@@ -916,7 +916,7 @@ if (preg_match("/android_dootask_expo/i", $ua)) {
 
 ### 7.2 推送相关
 
-**后端不需要改动**。iOS 和 Android 都继续使用 UMeng 推送，现有的 `UmengAlias` 模型、推送逻辑、配置全部保持原样。
+**推送逻辑不需要改动**。iOS 和 Android 都继续使用 UMeng 推送，现有的 `UmengAlias` 模型、`pushMsgToAlias()` 方法、配置全部保持原样。（UA 识别等其他后端改动见 7.1 节）
 
 ### 7.3 后端无需改动的部分
 
@@ -2665,14 +2665,9 @@ async function routeRequest(msg: BridgeRequest, ctx: BridgeContext): Promise<any
   if (module === 'webview') {
     switch (method) {
       case 'sendMessage':
-        // WebView 模块给自己发消息 — 通常用于 Tabbar badge 更新等
-        // 直接注入事件
-        const msgData = args[0];
-        ctx.webViewRef.current?.injectJavaScript(`
-          window.dispatchEvent(new CustomEvent('eeui_message', { detail: ${JSON.stringify(msgData)} }));
-          true;
-        `);
-        return null;
+        // WebView 向原生层发送命令（不是给 WebView 发消息！）
+        // 详见 17.7 节 sendMessage 命令总线协议
+        return handleSendMessage(args[0], ctx);
 
       case 'setUrl':
         // 改变 WebView URL — 通过 state 更新 source prop
