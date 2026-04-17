@@ -10,10 +10,12 @@ export function buildInjectedJS(initData: Record<string, unknown> = {}): string 
   // Multi-callback registry (uploadPhoto etc.)
   window.__bridgeCallbacks__ = window.__bridgeCallbacks__ || {};
   window.__EXPO_INIT_DATA__ = ${initDataJson};
-  // Preserve in-memory variates across in-page navigations; seed from the RN-side snapshot
-  // (getAllVariates()) on the very first load of this WebView.
+  // Preserve in-memory variates/caches across in-page navigations; seed from the RN-side
+  // snapshot on the very first load of this WebView.
   window.__EXPO_VARIATES__ =
     window.__EXPO_VARIATES__ || (window.__EXPO_INIT_DATA__ && window.__EXPO_INIT_DATA__.variates) || {};
+  window.__EXPO_CACHES__ =
+    window.__EXPO_CACHES__ || (window.__EXPO_INIT_DATA__ && window.__EXPO_INIT_DATA__.caches) || {};
 
   // Methods whose callback may fire multiple times (or later than the bridge_response).
   // The Proxy registers the callback in __bridgeCallbacks__ and RN invokes it via injectJavaScript.

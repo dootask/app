@@ -22,7 +22,7 @@ import { createBridgeHandler, disposeBridgeContext } from '../bridge';
 import { defaultAppState, type BridgeRequest, type BridgeResponse } from '../bridge/types';
 import { buildUserAgent } from '../utils/userAgent';
 import { registerScanCallback } from '../services/scannerBus';
-import { getAllVariates } from '../bridge/handlers/storage';
+import { getAllCaches, getAllVariates } from '../bridge/handlers/storage';
 import { getCurrentTheme, subscribeTheme } from '../services/themeBus';
 import type { RootStackParamList } from '../navigation/types';
 
@@ -70,6 +70,7 @@ export function WebViewHost({
       isFirstPage,
       keyboardVisible: false,
       variates: getAllVariates(),
+      caches: getAllCaches(),
     }),
     [isFirstPage, pageId],
   );

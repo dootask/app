@@ -1,6 +1,6 @@
 import type { RefObject } from 'react';
 import type WebView from 'react-native-webview';
-import { syncVariateToWebView } from './handlers/storage';
+import { syncCacheToWebView, syncVariateToWebView } from './handlers/storage';
 
 const activeWebViews = new Map<string, RefObject<WebView | null>>();
 
@@ -15,6 +15,12 @@ export function unregisterWebView(pageId: string): void {
 export function broadcastVariate(key: string, value: string): void {
   activeWebViews.forEach((ref) => {
     syncVariateToWebView(ref, key, value);
+  });
+}
+
+export function broadcastCache(key: string, value: string): void {
+  activeWebViews.forEach((ref) => {
+    syncCacheToWebView(ref, key, value);
   });
 }
 

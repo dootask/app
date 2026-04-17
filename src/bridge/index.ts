@@ -14,6 +14,7 @@ import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 
 import {
+  broadcastCache,
   broadcastVariate,
   registerWebView,
   unregisterWebView,
@@ -221,13 +222,13 @@ async function routeEeui(
     case 'getVariate':
       return getVariate(String(args[0] ?? ''), String(args[1] ?? ''));
 
-    case 'setCachesString':
-      await setCachesString(
-        String(args[0] ?? ''),
-        String(args[1] ?? ''),
-        Number(args[2] ?? 0),
-      );
+    case 'setCachesString': {
+      const key = String(args[0] ?? '');
+      const value = String(args[1] ?? '');
+      await setCachesString(key, value, Number(args[2] ?? 0));
+      broadcastCache(key, value);
       return null;
+    }
 
     case 'getCachesString':
       return getCachesString(String(args[0] ?? ''), String(args[1] ?? ''));
