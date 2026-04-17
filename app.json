@@ -68,7 +68,15 @@
           "enableCodeScanner": true
         }
       ],
-      "./plugins/withWebAssets"
+      "./plugins/withWebAssets",
+      [
+        "./plugins/withUmengPush",
+        {
+          "appKey": "",
+          "messageSecret": "",
+          "channel": "expo"
+        }
+      ]
     ],
     "updates": {
       "fallbackToCacheTimeout": 0

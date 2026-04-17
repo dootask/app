@@ -4,6 +4,7 @@ import * as Notifications from 'expo-notifications';
 import type { BridgeContext } from '../types';
 import { broadcastScript } from '../webViewRegistry';
 import { setCurrentTheme, type ThemeMode } from '../../services/themeBus';
+import { registerPush, unregisterPush } from '../../services/push';
 
 interface SendMessagePayload {
   action: string;
@@ -18,17 +19,24 @@ export async function handleSendMessage(
   const { action, ...params } = data;
 
   switch (action) {
-    case 'initApp':
+    case 'initApp': {
+      const userid = String(params.userid ?? '');
       ctx.appState.apiUrl = String(params.apiUrl ?? '');
-      ctx.appState.userId = String(params.userid ?? '');
+      ctx.appState.userId = userid;
       ctx.appState.userToken = String(params.token ?? '');
       ctx.appState.language = String(params.language ?? '');
-      // Push registration lives in Phase 4.
+      if (userid) await registerPush(userid);
       return null;
+    }
 
-    case 'setUmengAlias':
+    case 'setUmengAlias': {
+      const alias = String(params.alias ?? params.userid ?? ctx.appState.userId ?? '');
+      if (alias) await registerPush(alias);
+      return null;
+    }
+
     case 'delUmengAlias':
-      // Phase 4: wire to UMeng native module.
+      await unregisterPush();
       return null;
 
     case 'setVibrate':
