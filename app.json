@@ -79,7 +79,11 @@
       ]
     ],
     "updates": {
-      "fallbackToCacheTimeout": 0
+      "fallbackToCacheTimeout": 0,
+      "checkAutomatically": "ON_LOAD"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
     },
     "assetBundlePatterns": [
       "**/*"

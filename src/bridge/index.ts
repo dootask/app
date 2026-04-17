@@ -29,6 +29,7 @@ import {
   setVariate,
 } from './handlers/storage';
 import { showToast } from '../services/toastBus';
+import { checkForUpdate } from '../services/otaUpdates';
 import type { BridgeContext, BridgeRequest, BridgeResponse } from './types';
 
 let keyboardVisible = false;
@@ -241,8 +242,7 @@ async function routeEeui(
       return null;
 
     case 'checkUpdate':
-      // Phase 7: expo-updates
-      return null;
+      return checkForUpdate();
 
     case 'rewriteUrl':
       return args[0];
