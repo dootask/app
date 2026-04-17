@@ -1,0 +1,132 @@
+name: "EAS Build"
+
+# Required GitHub Secrets:
+#   EXPO_TOKEN           - from expo.dev access-tokens page
+#   APPLE_ID             - Apple ID email (for `submit`)
+#   ASC_APP_ID           - App Store Connect app ID (numeric)
+#   APPLE_TEAM_ID        - Apple Developer team ID
+#   GOOGLE_PLAY_SA_B64   - base64 encoded Google Play service account JSON (for `submit`)
+#   DOOTASK_REPO         - `owner/repo` of the main DooTask repo (defaults to kuaifan/dootask)
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: "Which platform to build"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - android
+          - ios
+          - all
+      profile:
+        description: "EAS build profile"
+        required: true
+        default: "preview"
+        type: choice
+        options:
+          - development
+          - preview
+          - production
+      submit:
+        description: "Submit to stores after build (production only)"
+        required: true
+        default: false
+        type: boolean
+      dootask_ref:
+        description: "Ref of the DooTask repo to build web assets from"
+        required: false
+        default: "pro"
+        type: string
+
+jobs:
+  build-web-assets:
+    name: Build web assets (Vue SPA)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout DooTask
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ vars.DOOTASK_REPO || 'kuaifan/dootask' }}
+          ref: ${{ inputs.dootask_ref }}
+          path: dootask
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Build frontend
+        working-directory: dootask
+        run: |
+          npm install
+          ./cmd prod
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dootask-web-${{ inputs.dootask_ref }}
+          path: dootask/public/
+          retention-days: 1
+
+  eas-build:
+    name: EAS build (${{ inputs.platform }}, ${{ inputs.profile }})
+    needs: build-web-assets
+    runs-on: ubuntu-latest
+    environment: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Download web assets
+        uses: actions/download-artifact@v4
+        with:
+          name: dootask-web-${{ inputs.dootask_ref }}
+          path: assets/web
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup Expo / EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: EAS Build
+        run: |
+          eas build \
+            --non-interactive \
+            --no-wait \
+            --platform ${{ inputs.platform }} \
+            --profile ${{ inputs.profile }}
+
+      - name: Prepare Google Play service account
+        if: ${{ inputs.submit && inputs.profile == 'production' && (inputs.platform == 'android' || inputs.platform == 'all') }}
+        env:
+          GOOGLE_PLAY_SA_B64: ${{ secrets.GOOGLE_PLAY_SA_B64 }}
+        run: |
+          echo "$GOOGLE_PLAY_SA_B64" | base64 --decode > google-play-service-account.json
+
+      - name: EAS Submit
+        if: ${{ inputs.submit && inputs.profile == 'production' }}
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          ASC_APP_ID: ${{ secrets.ASC_APP_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          eas submit \
+            --non-interactive \
+            --platform ${{ inputs.platform }} \
+            --profile production \
+            --latest
+
+      - name: Clean up credentials
+        if: always()
+        run: rm -f google-play-service-account.json
