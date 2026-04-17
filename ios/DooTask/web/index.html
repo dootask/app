@@ -22,6 +22,10 @@
     <button onclick="testAlert()">eeui.alert()</button>
     <button onclick="testToast()">eeui.toast()</button>
     <button onclick="testOpen()">eeui.openPage() /sub</button>
+    <button onclick="testLatest()">eeui.getLatestPhoto()</button>
+    <button onclick="testSnapshot()">webview.createSnapshot()</button>
+    <button onclick="testShow()">webview.showSnapshot()</button>
+    <button onclick="testHide()">webview.hideSnapshot()</button>
     <pre id="log"></pre>
     <script>
       var sys = document.getElementById('sys');
@@ -77,6 +81,40 @@
             params: { url: '/index.html' }
           });
           log('openPage', 'requested');
+        });
+      }
+
+      function testLatest() {
+        whenReady(function () {
+          window.requireModuleJs('eeui').getLatestPhoto(function (res) {
+            log('getLatestPhoto', {
+              status: res && res.status,
+              path: res && res.original && res.original.path,
+              base64len: res && res.thumbnail && res.thumbnail.base64 && res.thumbnail.base64.length,
+            });
+          });
+        });
+      }
+
+      function testSnapshot() {
+        whenReady(function () {
+          window.requireModuleJs('webview').createSnapshot().then(function (uri) {
+            log('createSnapshot', uri);
+          });
+        });
+      }
+
+      function testShow() {
+        whenReady(function () {
+          window.requireModuleJs('webview').showSnapshot();
+          log('showSnapshot', 'requested');
+        });
+      }
+
+      function testHide() {
+        whenReady(function () {
+          window.requireModuleJs('webview').hideSnapshot();
+          log('hideSnapshot', 'requested');
         });
       }
     </script>

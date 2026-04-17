@@ -50,4 +50,9 @@ export interface BridgeContext {
   // Register/clear the openPage lifecycle callback id so child-page pause events can
   // reach the parent WebView via `window.__bridgeCallbacks__[id]`.
   registerOpenPageCallback?: (childPageId: string, callbackId: string) => void;
+  // WebView snapshot primitives (Phase 3). `onCreateSnapshot` captures the current view and
+  // stashes the URI; `onShowSnapshot`/`onHideSnapshot` toggle the overlay.
+  onCreateSnapshot?: () => Promise<string | null>;
+  onShowSnapshot?: () => void;
+  onHideSnapshot?: () => void;
 }

@@ -11,7 +11,7 @@
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
-		54BF62A6D9DA4F94829B6980 /* web in Resources */ = {isa = PBXBuildFile; fileRef = 9A6B365BF3E945189D7635F6 /* web */; };
+		7CCB0B0A82712758CE67E089 /* web in Resources */ = {isa = PBXBuildFile; fileRef = 2FB3D033638FEC3964300A50 /* web */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -23,7 +23,7 @@
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = DooTask/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* DooTask-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "DooTask-Bridging-Header.h"; path = "DooTask/DooTask-Bridging-Header.h"; sourceTree = "<group>"; };
-		9A6B365BF3E945189D7635F6 /* web */ = {isa = PBXFileReference; name = "web"; path = "DooTask/web"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = folder; explicitFileType = undefined; includeInIndex = 0; };
+		2FB3D033638FEC3964300A50 /* web */ = {isa = PBXFileReference; name = "web"; path = "DooTask/web"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = folder; explicitFileType = undefined; includeInIndex = 0; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -72,7 +72,7 @@
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
-				9A6B365BF3E945189D7635F6 /* web */,
+				2FB3D033638FEC3964300A50 /* web */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -158,7 +158,7 @@
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
-				54BF62A6D9DA4F94829B6980 /* web in Resources */,
+				7CCB0B0A82712758CE67E089 /* web in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

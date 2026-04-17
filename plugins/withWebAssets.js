@@ -2,9 +2,15 @@ const {
   withDangerousMod,
   withXcodeProject,
 } = require('@expo/config-plugins');
+const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const PbxFile = require('xcode/lib/pbxFile');
+
+// Deterministic 24-char uppercase hex, so prebuild regenerations don't churn the pbxproj.
+function stableUuid(seed) {
+  return crypto.createHash('sha1').update(seed).digest('hex').slice(0, 24).toUpperCase();
+}
 
 function copyDir(src, dest) {
   if (!fs.existsSync(src)) return;
@@ -88,8 +94,8 @@ const withIosWebAssets = (config) => {
     // `addResourceFile` calls correctForResourcesPath which requires a "Resources" group —
     // Expo's template doesn't create one, so we wire the folder reference ourselves.
     const file = new PbxFile(relPath, { lastKnownFileType: 'folder' });
-    file.uuid = project.generateUuid();
-    file.fileRef = project.generateUuid();
+    file.uuid = stableUuid(`withWebAssets:buildFile:${relPath}`);
+    file.fileRef = stableUuid(`withWebAssets:fileRef:${relPath}`);
     file.target = project.getFirstTarget().uuid;
 
     project.addToPbxFileReferenceSection(file);

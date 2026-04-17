@@ -3,6 +3,7 @@ import {
   AppState,
   type AppStateStatus,
   BackHandler,
+  Image,
   Keyboard,
   StyleSheet,
   Text,
@@ -14,6 +15,7 @@ import Constants from 'expo-constants';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { captureRef, releaseCapture } from 'react-native-view-shot';
 
 import { buildInjectedJS } from '../bridge/injectedJS';
 import { createBridgeHandler, disposeBridgeContext } from '../bridge';
@@ -44,10 +46,17 @@ export function WebViewHost({
   onBack,
 }: Props) {
   const webViewRef = useRef<WebView>(null);
+  const captureContainerRef = useRef<View>(null);
   const insets = useSafeAreaInsets();
   const [scrollEnabled, setScrollEnabled] = useState(true);
   const [currentUrl, setCurrentUrl] = useState(url);
   useEffect(() => setCurrentUrl(url), [url]);
+
+  // Snapshot: capture the WebView contents, then (optionally) overlay the image while the
+  // WebView is paused (e.g. on AppState background, to avoid task-switcher leaks).
+  const [snapshotUri, setSnapshotUri] = useState<string | null>(null);
+  const [snapshotVisible, setSnapshotVisible] = useState(false);
+  const lastSnapshotRef = useRef<string | null>(null);
 
   // Tracks the id of the `__bridgeCallbacks__` entry the Vue page registered via
   // `setPageBackPressed(true, cb)`; null when native should use default behaviour.
@@ -91,6 +100,25 @@ export function WebViewHost({
       onSetBackIntercept: (callbackId) => {
         backInterceptIdRef.current = callbackId;
       },
+      onCreateSnapshot: async () => {
+        if (!captureContainerRef.current) return null;
+        try {
+          if (lastSnapshotRef.current) releaseCapture(lastSnapshotRef.current);
+          const uri = await captureRef(captureContainerRef, {
+            format: 'jpg',
+            quality: 0.8,
+            result: 'tmpfile',
+          });
+          lastSnapshotRef.current = uri;
+          setSnapshotUri(uri);
+          return uri;
+        } catch (e) {
+          console.warn('[createSnapshot] failed:', e);
+          return null;
+        }
+      },
+      onShowSnapshot: () => setSnapshotVisible(true),
+      onHideSnapshot: () => setSnapshotVisible(false),
     });
     bridgeHandlerRef.current = handler;
     return () => {
@@ -192,6 +220,10 @@ export function WebViewHost({
       kbShow.remove();
       kbHide.remove();
       themeUnsub();
+      if (lastSnapshotRef.current) {
+        releaseCapture(lastSnapshotRef.current);
+        lastSnapshotRef.current = null;
+      }
     };
   }, []);
 
@@ -201,25 +233,34 @@ export function WebViewHost({
       {showHeader ? (
         <HeaderBar title={headerTitle} onBack={onBack ?? (() => navigation.goBack())} />
       ) : null}
-      <WebView
-        ref={webViewRef}
-        source={{ uri: currentUrl }}
-        userAgent={buildUserAgent()}
-        injectedJavaScriptBeforeContentLoaded={injectedJS}
-        onMessage={onMessage}
-        javaScriptEnabled
-        domStorageEnabled
-        allowFileAccess
-        mixedContentMode="always"
-        originWhitelist={['*']}
-        scrollEnabled={scrollEnabled}
-        allowsBackForwardNavigationGestures={false}
-        keyboardDisplayRequiresUserAction={false}
-        allowsInlineMediaPlayback
-        mediaPlaybackRequiresUserAction={false}
-        mediaCapturePermissionGrantType="grant"
-        style={styles.webview}
-      />
+      <View ref={captureContainerRef} collapsable={false} style={styles.webview}>
+        <WebView
+          ref={webViewRef}
+          source={{ uri: currentUrl }}
+          userAgent={buildUserAgent()}
+          injectedJavaScriptBeforeContentLoaded={injectedJS}
+          onMessage={onMessage}
+          javaScriptEnabled
+          domStorageEnabled
+          allowFileAccess
+          mixedContentMode="always"
+          originWhitelist={['*']}
+          scrollEnabled={scrollEnabled}
+          allowsBackForwardNavigationGestures={false}
+          keyboardDisplayRequiresUserAction={false}
+          allowsInlineMediaPlayback
+          mediaPlaybackRequiresUserAction={false}
+          mediaCapturePermissionGrantType="grant"
+          style={styles.webview}
+        />
+        {snapshotVisible && snapshotUri ? (
+          <Image
+            source={{ uri: snapshotUri }}
+            style={StyleSheet.absoluteFill}
+            resizeMode="cover"
+          />
+        ) : null}
+      </View>
     </SafeAreaView>
   );
 }

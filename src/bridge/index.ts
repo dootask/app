@@ -20,7 +20,7 @@ import {
 } from './webViewRegistry';
 import { handleOpenPage } from './handlers/navigation';
 import { handleSendMessage } from './handlers/nativeCommands';
-import { getLatestPhoto, uploadPhoto } from './handlers/media';
+import { cancelUploadPhoto, getLatestPhoto, uploadPhoto } from './handlers/media';
 import {
   getCachesString,
   getVariate,
@@ -207,7 +207,7 @@ async function routeEeui(
       return uploadPhoto(args[0], requestId, ctx.webViewRef);
 
     case 'cancelUploadPhoto':
-      return null;
+      return cancelUploadPhoto(args[0]);
 
     // ---- storage ----
     case 'setVariate': {
@@ -283,9 +283,14 @@ async function routeWebview(
       return null;
 
     case 'createSnapshot':
+      return ctx.onCreateSnapshot ? ctx.onCreateSnapshot() : null;
+
     case 'showSnapshot':
+      ctx.onShowSnapshot?.();
+      return null;
+
     case 'hideSnapshot':
-      // Phase 3: react-native-view-shot
+      ctx.onHideSnapshot?.();
       return null;
 
     case 'setDisabledUserLongClickSelect': {
