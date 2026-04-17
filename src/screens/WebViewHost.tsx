@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Appearance,
   AppState,
   type AppStateStatus,
   BackHandler,
@@ -21,6 +20,8 @@ import { createBridgeHandler, disposeBridgeContext } from '../bridge';
 import { defaultAppState, type BridgeRequest, type BridgeResponse } from '../bridge/types';
 import { buildUserAgent } from '../utils/userAgent';
 import { registerScanCallback } from '../services/scannerBus';
+import { getAllVariates } from '../bridge/handlers/storage';
+import { getCurrentTheme, subscribeTheme } from '../services/themeBus';
 import type { RootStackParamList } from '../navigation/types';
 
 interface Props {
@@ -45,14 +46,21 @@ export function WebViewHost({
   const webViewRef = useRef<WebView>(null);
   const insets = useSafeAreaInsets();
   const [scrollEnabled, setScrollEnabled] = useState(true);
+  const [currentUrl, setCurrentUrl] = useState(url);
+  useEffect(() => setCurrentUrl(url), [url]);
+
+  // Tracks the id of the `__bridgeCallbacks__` entry the Vue page registered via
+  // `setPageBackPressed(true, cb)`; null when native should use default behaviour.
+  const backInterceptIdRef = useRef<string | null>(null);
 
   const initData = useMemo(
     () => ({
       version: Constants.expoConfig?.version ?? '0.0.0',
-      themeName: Appearance.getColorScheme() ?? 'light',
+      themeName: getCurrentTheme(),
       pageInfo: { pageName: isFirstPage ? 'firstPage' : pageId },
       isFirstPage,
       keyboardVisible: false,
+      variates: getAllVariates(),
     }),
     [isFirstPage, pageId],
   );
@@ -79,6 +87,10 @@ export function WebViewHost({
         navigation.navigate('Scanner', { scanId });
       },
       onSetScrollEnabled: (enabled) => setScrollEnabled(enabled),
+      onSetUrl: (next) => setCurrentUrl(next),
+      onSetBackIntercept: (callbackId) => {
+        backInterceptIdRef.current = callbackId;
+      },
     });
     bridgeHandlerRef.current = handler;
     return () => {
@@ -103,17 +115,23 @@ export function WebViewHost({
 
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (isFirstPage) {
+      const cbId = backInterceptIdRef.current;
+      if (cbId) {
+        const idJson = JSON.stringify(cbId);
         webViewRef.current?.injectJavaScript(`
-          window.dispatchEvent(new CustomEvent('bridge_event', {
-            detail: { type: 'bridge_event', event: 'backPressed' }
-          }));
+          (function() {
+            var cb = window.__bridgeCallbacks__ && window.__bridgeCallbacks__[${idJson}];
+            if (typeof cb === 'function') { try { cb(); } catch (e) {} }
+          })();
           true;
         `);
         return true;
       }
-      navigation.goBack();
-      return true;
+      if (!isFirstPage) {
+        navigation.goBack();
+        return true;
+      }
+      return false;
     });
     return () => sub.remove();
   }, [isFirstPage, navigation]);
@@ -140,6 +158,8 @@ export function WebViewHost({
     const kbShow = Keyboard.addListener('keyboardDidShow', (e) => {
       const height = e.endCoordinates?.height ?? 0;
       webViewRef.current?.injectJavaScript(`
+        window.__EXPO_INIT_DATA__ = window.__EXPO_INIT_DATA__ || {};
+        window.__EXPO_INIT_DATA__.keyboardVisible = true;
         typeof window.__onKeyboardStatus === 'function'
           && window.__onKeyboardStatus({ keyboardType: 'show', keyboardHeight: ${height} });
         true;
@@ -147,8 +167,22 @@ export function WebViewHost({
     });
     const kbHide = Keyboard.addListener('keyboardDidHide', () => {
       webViewRef.current?.injectJavaScript(`
+        window.__EXPO_INIT_DATA__ = window.__EXPO_INIT_DATA__ || {};
+        window.__EXPO_INIT_DATA__.keyboardVisible = false;
         typeof window.__onKeyboardStatus === 'function'
           && window.__onKeyboardStatus({ keyboardType: 'hide', keyboardHeight: 0 });
+        true;
+      `);
+    });
+
+    const themeUnsub = subscribeTheme((mode) => {
+      webViewRef.current?.injectJavaScript(`
+        window.__EXPO_INIT_DATA__ = window.__EXPO_INIT_DATA__ || {};
+        window.__EXPO_INIT_DATA__.themeName = ${JSON.stringify(mode)};
+        window.dispatchEvent(new CustomEvent('bridge_event', {
+          detail: { type: 'bridge_event', event: 'themeChanged', data: { theme: ${JSON.stringify(mode)} } }
+        }));
+        typeof window.__onThemeChanged === 'function' && window.__onThemeChanged(${JSON.stringify(mode)});
         true;
       `);
     });
@@ -157,6 +191,7 @@ export function WebViewHost({
       appSub.remove();
       kbShow.remove();
       kbHide.remove();
+      themeUnsub();
     };
   }, []);
 
@@ -168,7 +203,7 @@ export function WebViewHost({
       ) : null}
       <WebView
         ref={webViewRef}
-        source={{ uri: url }}
+        source={{ uri: currentUrl }}
         userAgent={buildUserAgent()}
         injectedJavaScriptBeforeContentLoaded={injectedJS}
         onMessage={onMessage}

@@ -2,6 +2,8 @@ import * as Haptics from 'expo-haptics';
 import * as Linking from 'expo-linking';
 import * as Notifications from 'expo-notifications';
 import type { BridgeContext } from '../types';
+import { broadcastScript } from '../webViewRegistry';
+import { setCurrentTheme, type ThemeMode } from '../../services/themeBus';
 
 interface SendMessagePayload {
   action: string;
@@ -62,9 +64,24 @@ export async function handleSendMessage(
       return null;
     }
 
-    case 'updateTheme':
-      // Phase 2+: propagate theme change to all active WebViews.
+    case 'updateTheme': {
+      const theme = String(params.theme ?? '') as ThemeMode;
+      if (theme === 'light' || theme === 'dark') {
+        setCurrentTheme(theme);
+        // Every active WebView also gets a bridge_event so listeners (e.g. window.__onThemeChanged)
+        // can react without polling.
+        broadcastScript(`
+          window.__EXPO_INIT_DATA__ = window.__EXPO_INIT_DATA__ || {};
+          window.__EXPO_INIT_DATA__.themeName = ${JSON.stringify(theme)};
+          window.dispatchEvent(new CustomEvent('bridge_event', {
+            detail: { type: 'bridge_event', event: 'themeChanged', data: { theme: ${JSON.stringify(theme)} } }
+          }));
+          typeof window.__onThemeChanged === 'function' && window.__onThemeChanged(${JSON.stringify(theme)});
+          true;
+        `);
+      }
       return null;
+    }
 
     case 'windowSize':
     case 'userChatList':

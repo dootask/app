@@ -6,6 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { MainScreen } from './screens/MainScreen';
 import { ChildWebViewScreen } from './screens/ChildWebViewScreen';
 import { ScannerScreen } from './screens/ScannerScreen';
+import { ToastHost } from './components/ToastHost';
 import type { RootStackParamList } from './navigation/types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -28,6 +29,7 @@ export default function App() {
           />
         </Stack.Navigator>
       </NavigationContainer>
+      <ToastHost />
     </SafeAreaProvider>
   );
 }

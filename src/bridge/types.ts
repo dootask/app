@@ -43,4 +43,11 @@ export interface BridgeContext {
   appState: AppState;
   onRequestScan?: (callback: (result: string) => void) => void;
   onSetScrollEnabled?: (enabled: boolean) => void;
+  onSetUrl?: (url: string) => void;
+  // Register/clear the Vue-side Android-back callback. `callbackId` is the request id
+  // the Proxy stored in `window.__bridgeCallbacks__[id]`; pass `null` to clear.
+  onSetBackIntercept?: (callbackId: string | null) => void;
+  // Register/clear the openPage lifecycle callback id so child-page pause events can
+  // reach the parent WebView via `window.__bridgeCallbacks__[id]`.
+  registerOpenPageCallback?: (childPageId: string, callbackId: string) => void;
 }

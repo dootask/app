@@ -5,7 +5,6 @@ import {
   Dimensions,
   Keyboard,
   Platform,
-  ToastAndroid,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
@@ -28,6 +27,7 @@ import {
   setCachesString,
   setVariate,
 } from './handlers/storage';
+import { showToast } from '../services/toastBus';
 import type { BridgeContext, BridgeRequest, BridgeResponse } from './types';
 
 let keyboardVisible = false;
@@ -130,7 +130,12 @@ async function routeEeui(
 
     // ---- navigation ----
     case 'openPage':
-      return handleOpenPage(args, ctx.navigation);
+      return handleOpenPage({
+        args,
+        navigation: ctx.navigation,
+        parentWebViewRef: ctx.webViewRef,
+        requestId,
+      });
 
     case 'openWeb':
       if (typeof args[0] === 'string') await Linking.openURL(args[0]);
@@ -140,8 +145,11 @@ async function routeEeui(
       if (Platform.OS === 'android') BackHandler.exitApp();
       return null;
 
-    case 'setPageBackPressed':
+    case 'setPageBackPressed': {
+      const enabled = Boolean(args[0]);
+      ctx.onSetBackIntercept?.(enabled ? requestId : null);
       return null;
+    }
 
     // ---- UI ----
     case 'alert': {
@@ -164,10 +172,14 @@ async function routeEeui(
     }
 
     case 'toast': {
-      const obj = (args[0] ?? {}) as { message?: string };
-      if (Platform.OS === 'android') {
-        ToastAndroid.show(obj.message ?? '', ToastAndroid.SHORT);
-      }
+      const obj = (args[0] ?? {}) as {
+        message?: string;
+        gravity?: 'top' | 'center' | 'bottom';
+      };
+      showToast({
+        message: obj.message ?? '',
+        gravity: obj.gravity,
+      });
       return null;
     }
 
@@ -253,9 +265,18 @@ async function routeWebview(
     case 'sendMessage':
       return handleSendMessage(args[0], ctx);
 
-    case 'setUrl':
-      // Phase 2: provide onSetUrl in BridgeContext and call here.
+    case 'setUrl': {
+      const url = typeof args[0] === 'string' ? args[0] : '';
+      if (!url) return null;
+      if (ctx.onSetUrl) {
+        ctx.onSetUrl(url);
+      } else {
+        ctx.webViewRef.current?.injectJavaScript(
+          `window.location.href = ${JSON.stringify(url)}; true;`,
+        );
+      }
       return null;
+    }
 
     case 'setScrollEnabled':
       ctx.onSetScrollEnabled?.(args[0] !== false);
