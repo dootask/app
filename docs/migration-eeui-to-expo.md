@@ -1163,13 +1163,13 @@ jobs:
           cd dootask
           npm install
           ./cmd prod
-          cp -r public/* $GITHUB_WORKSPACE/public/
+          cp -r public/* $GITHUB_WORKSPACE/assets/web/
 
       - name: Upload Assets
         uses: actions/upload-artifact@v4
         with:
           name: frontend-assets
-          path: public/
+          path: assets/web/
 
   build-app:
     needs: build-assets
@@ -1181,7 +1181,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: frontend-assets
-          path: public/
+          path: assets/web/
 
       - name: Setup Expo
         uses: expo/expo-github-action@v8
@@ -1768,7 +1768,7 @@ export function registerPageCallback(childPageId: string, callback: (status: str
 export function onChildPageClosed(childPageId: string) {
   const callback = pageCallbacks.get(childPageId);
   if (callback) {
-    callback('pause'); // EEUI 用 'pause' 表示子页面关闭
+    callback({ status: 'pause' }); // EEUI 回调传对象 {status}，见 actions.js:1351
     pageCallbacks.delete(childPageId);
   }
 }
@@ -1905,7 +1905,7 @@ window.__bridgeCallbacks__ = {};
 
 // 在 createModuleProxy 中，如果方法需要多次回调，注册到 __bridgeCallbacks__
 // 特殊方法列表：
-const MULTI_CALLBACK_METHODS = ['uploadPhoto', 'openScaner'];
+const MULTI_CALLBACK_METHODS = ['uploadPhoto']; // openScaner 是单次回调，不在此列
 ```
 
 #### getSafeAreaInsets
@@ -2180,8 +2180,10 @@ export function buildUserAgent(): string {
 
 ## 附录 B：桥接路由示例
 
+> **注意**：此附录为早期草稿，已被 17.4 节（createBridgeHandler 完整实现）和 17.7 节（sendMessage 命令总线）取代。如有冲突，以第 17 节为准。
+
 ```typescript
-// src/bridge/index.ts
+// src/bridge/index.ts（早期草稿，完整版见 17.4 节）
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import { Keyboard, Alert, BackHandler, Linking, Appearance } from 'react-native';
@@ -2257,7 +2259,7 @@ export async function handleBridgeRequest(msg: BridgeRequest): Promise<any> {
         return null;
 
       case 'sendMessage':
-        // WebView 给自己发消息 — 直接注入 JS
+        // WebView 向原生层发命令（完整版见 17.7 节）
         return null;
 
       default:
