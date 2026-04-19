@@ -82,9 +82,7 @@
       "fallbackToCacheTimeout": 0,
       "checkAutomatically": "ON_LOAD"
     },
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
+    "runtimeVersion": "1.7.23",
     "assetBundlePatterns": [
       "**/*"
     ]
