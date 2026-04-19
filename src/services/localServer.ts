@@ -1,4 +1,4 @@
-import Server, { ERROR_LOG_FILE } from '@dr.pogodin/react-native-static-server';
+import Server from '@dr.pogodin/react-native-static-server';
 import * as RNFS from '@dr.pogodin/react-native-fs';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
@@ -33,39 +33,20 @@ export async function startLocalServer(): Promise<string> {
   server = new Server({
     fileDir,
     port: PORT,
-    // Force the returned origin to `http://localhost:<port>`. Default is 127.0.0.1 which
-    // makes Vue's isLocalHost(url) → false (it only recognises "localhost"), and that
-    // cascades into history-mode routing + 404 on first load.
-    hostname: 'localhost',
+    // Keep the default hostname (127.0.0.1). Binding lighttpd to "localhost" triggers
+    // an IPv6/path-resolution bug where every request returns 404, even though
+    // document-root is correct.
     stopInBackground: false,
-    // Detailed 404/request logs → ERROR_LOG_FILE (in TemporaryDirectoryPath). When
-    // lighttpd 404s everything, tailing this log tells us whether it's a
-    // document-root-not-found, permission, or path-normalization issue.
-    errorLog: {
-      fileNotFound: true,
-      requestHandling: true,
-    },
   });
 
   try {
-    serverUrl = await server.start();
+    await server.start();
+    // Return a URL with the `localhost` hostname (not 127.0.0.1). The OS resolver maps
+    // `localhost` → `127.0.0.1` so the connection hits the same in-process server, but
+    // `window.location.hostname` ends up being `localhost`, which is what DooTask's
+    // `isLocalHost()` strictly compares against (→ enables Vue hash routing).
+    serverUrl = `http://localhost:${PORT}`;
     console.log(`[localServer] serving ${fileDir} at ${serverUrl}`);
-    console.log(`[localServer] error log at ${ERROR_LOG_FILE}`);
-    // Also report fileDir existence + contents from lighttpd's perspective (this process).
-    try {
-      const exists = await RNFS.exists(fileDir);
-      if (exists) {
-        const entries = await RNFS.readDir(fileDir);
-        console.log(
-          `[localServer] fileDir exists, ${entries.length} entries:`,
-          entries.map((e) => e.name).slice(0, 10).join(', '),
-        );
-      } else {
-        console.warn(`[localServer] fileDir does NOT exist from RN perspective: ${fileDir}`);
-      }
-    } catch (e) {
-      console.warn('[localServer] RNFS.readDir failed:', e);
-    }
   } catch (e) {
     console.warn('[localServer] start failed:', e, 'fileDir=', fileDir);
     throw e;
