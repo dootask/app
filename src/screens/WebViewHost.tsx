@@ -249,6 +249,7 @@ export function WebViewHost({
           scrollEnabled={scrollEnabled}
           allowsBackForwardNavigationGestures={false}
           keyboardDisplayRequiresUserAction={false}
+          webviewDebuggingEnabled={__DEV__}
           allowsInlineMediaPlayback
           mediaPlaybackRequiresUserAction={false}
           mediaCapturePermissionGrantType="grant"
