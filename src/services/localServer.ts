@@ -18,10 +18,16 @@ export async function startLocalServer(): Promise<string> {
 
   let fileDir: string;
   if (Platform.OS === 'android') {
+    // Android packages `android/app/src/main/assets/web/` into the APK; we first copy it
+    // out to the document directory (APK assets aren't directly file-system readable) and
+    // point the static server there.
     fileDir = `${RNFS.DocumentDirectoryPath}/${WEB_DIR_NAME}`;
     await ensureAndroidWebAssets(fileDir);
   } else {
-    fileDir = `${RNFS.MainBundlePath}/assets/${WEB_DIR_NAME}`;
+    // iOS: withWebAssets.js registers `<AppName>/web` as a Xcode *folder reference* (blue
+    // folder). Folder references land in the bundle root keeping only the last component,
+    // so the runtime path is `<Bundle>/web/`, NOT `<Bundle>/assets/web/`.
+    fileDir = `${RNFS.MainBundlePath}/${WEB_DIR_NAME}`;
   }
 
   server = new Server({
@@ -30,7 +36,13 @@ export async function startLocalServer(): Promise<string> {
     stopInBackground: false,
   });
 
-  serverUrl = await server.start();
+  try {
+    serverUrl = await server.start();
+    console.log(`[localServer] serving ${fileDir} at ${serverUrl}`);
+  } catch (e) {
+    console.warn('[localServer] start failed:', e, 'fileDir=', fileDir);
+    throw e;
+  }
   return serverUrl;
 }
 
