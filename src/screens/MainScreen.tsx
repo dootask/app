@@ -29,7 +29,8 @@ export function MainScreen() {
 
   return (
     <WebViewHost
-      url={`${url}/index.html`}
+      // 用根路径（/）而不是 /index.html，让 Vue SPA 自己判断重定向逻辑
+      url={`${url}/`}
       isFirstPage
       pageId="firstPage"
       navigation={navigation}

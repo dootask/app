@@ -37,10 +37,11 @@ export function handleOpenPage({
   const serverUrl = getLocalServerUrl();
   let targetUrl = params.params?.url || params.url || '';
 
+  // 统一用根路径 + hash，让 Vue SPA 自己处理重定向，不要直接给 /index.html
   if (targetUrl.startsWith('#')) {
-    targetUrl = `${serverUrl ?? ''}/index.html${targetUrl}`;
+    targetUrl = `${serverUrl ?? ''}/${targetUrl}`;
   } else if (targetUrl.startsWith('/')) {
-    targetUrl = `${serverUrl ?? ''}/index.html#${targetUrl}`;
+    targetUrl = `${serverUrl ?? ''}/#${targetUrl}`;
   } else if (!/^https?:\/\//i.test(targetUrl)) {
     targetUrl = `${serverUrl ?? ''}/${targetUrl}`;
   }
