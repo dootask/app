@@ -244,6 +244,10 @@ export function WebViewHost({
           javaScriptEnabled
           domStorageEnabled
           allowFileAccess
+          allowFileAccessFromFileURLs
+          allowUniversalAccessFromFileURLs
+          setSupportMultipleWindows={false}
+          cacheEnabled
           mixedContentMode="always"
           originWhitelist={['*']}
           scrollEnabled={scrollEnabled}

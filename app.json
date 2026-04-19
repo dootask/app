@@ -20,7 +20,11 @@
         "NSCameraUsageDescription": "用于扫码、拍照和视频会议",
         "NSPhotoLibraryUsageDescription": "用于选择和上传照片",
         "NSMicrophoneUsageDescription": "用于语音和视频会议",
-        "NSPhotoLibraryAddUsageDescription": "用于保存图片到相册"
+        "NSPhotoLibraryAddUsageDescription": "用于保存图片到相册",
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true,
+          "NSAllowsLocalNetworking": true
+        }
       }
     },
     "android": {
@@ -37,6 +41,7 @@
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE"
       ],
+      "usesCleartextTraffic": true,
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },

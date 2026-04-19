@@ -1,4 +1,5 @@
 const {
+  withAndroidManifest,
   withDangerousMod,
   withXcodeProject,
 } = require('@expo/config-plugins');
@@ -109,8 +110,21 @@ const withIosWebAssets = (config) => {
   return config;
 };
 
+// Force `android:usesCleartextTraffic="true"` onto the <application> element. Required so
+// the WebView (and any image loader inside the Vue SPA) can fetch plain HTTP resources from
+// the DooTask backend — mirrors EEUI's network_security_config.xml setup.
+const withAndroidCleartext = (config) =>
+  withAndroidManifest(config, (cfg) => {
+    const app = cfg.modResults.manifest.application?.[0];
+    if (app) {
+      app.$['android:usesCleartextTraffic'] = 'true';
+    }
+    return cfg;
+  });
+
 const withWebAssets = (config) => {
   config = withAndroidWebAssets(config);
+  config = withAndroidCleartext(config);
   config = withIosWebAssets(config);
   return config;
 };
