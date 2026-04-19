@@ -33,6 +33,10 @@ export async function startLocalServer(): Promise<string> {
   server = new Server({
     fileDir,
     port: PORT,
+    // Force the returned origin to `http://localhost:<port>`. Default is 127.0.0.1 which
+    // makes Vue's isLocalHost(url) → false (it only recognises "localhost"), and that
+    // cascades into history-mode routing + 404 on first load.
+    hostname: 'localhost',
     stopInBackground: false,
   });
 
