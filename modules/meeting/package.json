@@ -1,0 +1,8 @@
+{
+  "name": "dootask-meeting",
+  "version": "1.0.0",
+  "description": "DooTask 会议 Android 前台保活",
+  "main": "index.ts",
+  "private": true,
+  "license": "MIT"
+}

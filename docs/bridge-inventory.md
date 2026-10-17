@@ -87,8 +87,8 @@
 | videoPreview | `{language, path}` | 原生视频播放 | ✅ X2（expo-video、原生播放控件、失焦 / 后台暂停；待集成 import 与设备验证） |
 | userChatList | `{language, url}` | 系统分享扩展所需的会话列表（iOS App Group / Android 缓存） | ✅ X2（`src/features/share`；App Group UserDefaults + 旧 archive / Android eeuiCaches；待集成 import 与设备验收） |
 | userUploadUrl | `{dirUrl, chatUrl}` | 同上 | ✅ X2（保留 upLoadUrl / fileUpLoadUrl；双端原生分享页与上传、CNG 扩展 / Activity 已实现，见 x2-share-report.md） |
-| startMeeting | `{meetingParams:{...}}` | Agora 会议（M3），事件通过 `__onMeetingEvent` 回传 | ⬜ X(M3) |
-| updateMeetingInfo | `{infos:{uuid, avatar, username}}` | M3 | ⬜ X(M3) |
+| startMeeting | `{meetingParams:{...}}` | Agora 原生会议、音视频网格、媒体控制、邀请/缩小/恢复、离开确认；事件通过 `__onMeetingEvent` 回传 | ✅ X3（`src/features/meeting`；待集成注册 import / 根布局 MeetingOverlay，以及双端编译和真机验收，见 x3-meeting-report.md） |
+| updateMeetingInfo | `{infos:{uuid, avatar, username}}` | 按 uid 合并头像/姓名，支持早到/晚到和跨 WebView 回传 | ✅ X3（PageHandle.state 保存会话及信息，待设备验收） |
 | setUmengAlias / delUmengAlias | `{url}` | 一期不接推送，只记录 action 日志；二期改为 DooPush | ✅ X1（日志占位） |
 | setPageData | `{data}` | 合并当前页面展示数据，不触碰生命周期和控制器 | ✅ X1 |
 | createTarget | `{url}` | 二级页专用：按白名单在当前 WebView 加载，mailto/tel/callto 交给系统（与旧 web.vue:273 一致） | ✅ X1 |
@@ -103,7 +103,7 @@
 | `__onKeyboardStatus({keyboardType:'show'\|'hide', keyboardHeight})` | 键盘弹出或收起 | ✅ C |
 | `__onCreateTarget(url)` | target=_blank 或 window.open | ✅ C（主页面）；✅ X1（二级页按白名单在当前页加载，与旧 web.vue 一致） |
 | `__onNotificationPermissionStatus(ret)` | getNotificationPermission 返回 boolean；iOS 完整授权才为 true | ✅ X2（原页面回调，查询失败返回 false；待集成 import） |
-| `__onMeetingEvent(param)` | 会议事件 | ⬜ X(M3) |
+| `__onMeetingEvent(param)` | getInfo / success / error / endMeeting 的 uuid、invent 的 meetingid 均为字符串；status 的 status 为 boolean | ✅ X3（六类 act 与旧壳对齐，完整字段/触发时机见 x3-meeting-report.md） |
 | `__handleLink(link)` | 通过深链 `dootask://` 打开；移除 scheme 后传递路径，前端尚未就绪时延迟 2 秒 | ✅ X1（`useDeepLinkHandler` + `+native-intent.tsx`，保留 bridge-test；待首页接入及实机验证） |
 
 ## 7. 二级页面（web.js → `src/app/web.tsx`）

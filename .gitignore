@@ -41,5 +41,8 @@ yarn-error.*
 /android
 
 # 内置前端构建产物，仅保留占位入口
+# index.html 已追踪，构建会覆盖；提交前须恢复占位内容，不使用 assume-unchanged。
 /assets/web/*
 !/assets/web/index.html
+
+# version.json 已追踪，保留独立克隆时的版本回退；构建验证后恢复原内容。

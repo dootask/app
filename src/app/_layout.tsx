@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useBridgeRuntime } from '../bridge/hooks';
 import { useAppTheme } from '../bridge/messages/theme';
 import { ToastHost } from '../bridge/modules/eeui/ToastHost';
+import MeetingOverlay from '../features/meeting/MeetingOverlay';
 
 export default function RootLayout() {
   useBridgeRuntime();
@@ -19,6 +20,7 @@ export default function RootLayout() {
         }}
       />
       <ToastHost />
+      <MeetingOverlay />
     </>
   );
 }

@@ -122,3 +122,29 @@
 - 🔧 修复：首页 / 子页 WebView 的返回键监听原先在被扫码、预览等原生页覆盖时仍生效，导致 Android 返回键关不掉扫码页。改为 `useFocusEffect` 仅在获得焦点时监听，复测返回键可正常关闭扫码与预览。
 
 未验证（需手测或真机）：分享实际发送（会在测试服务器真实发消息）、iOS 分享扩展（需从其他 App 的分享面板触发）、扫码识别结果回调、getLatestPhoto / uploadPhoto、videoPreview、长按振动与禁选、clearAllNotify。Android getLatestPhoto 的 DATE_ADDED 语义仍为 🟡。
+
+### 2026-10-17 X4 Expo 内测构建与 CI
+
+新增主仓库 `node electron/build.js app-expo [build]` / `./cmd appexpo [build]`，复用既有前端编译并同步至 `assets/web/`，写入 version / codeVerson；`./cmd appexpo npm ...` 使用本机 Node 在新壳目录执行。保留 public API 占位、相对资源 base 与 localhost hash 路由。新增仅 workflow_dispatch 的 `app-internal.yml`：Android Release 可用 keystore 或退化 debug 签名，iOS 支持 ad-hoc / development、双 profile / App Group 校验，无签名材料时跳过；仅上传 artifact。独立 app-internal Environment 沿用 iOS secrets 名称，避免覆盖旧 build 环境的 App Store profiles。旧 eeui 入口、构建与正式发布 workflow 均未改动。
+
+验证：实际前端构建成功，1,630 个文件、133 个 manifest 条目及 2,791 处相对 JS import 的资源映射通过；隔离副本双端 clean prebuild 通过，包内资源逐字节一致。iOS 签名 config mod 的双 target / 重复执行检查及 9 组合成 profile 校验通过。actionlint 1.7.12、JS / Bash / Python 语法、PHPStan、语言检查、子模块类型检查 / lint 通过；主前端 lint 为 0 error、103 条存量 warning。工作区已恢复原占位 HTML 和已追踪 version.json，未保留本批编译产物。
+
+待办：在 GitHub 配置 app-internal Environment 及 secrets 后手动运行 workflow（子模块已在主仓库 dev 分支登记）。本机无可用原生构建环境，未执行真实 APK / IPA 编译签名或包内模式设备验收。完整命令、secrets、文件清单与验证边界见 [X4 构建报告](x4-build-report.md)。
+
+### 2026-10-17 X3 / M3 原生 Agora 会议
+
+新增 `src/features/meeting`、会议路由、可拖动悬浮条、Android 本地 Expo 保活模块及 CNG 插件，使用精确锁定的 `react-native-agora@4.6.4`。保留 startMeeting / updateMeetingInfo 参数和六种事件字段，实现音视频网格、媒体控制、邀请、最小化恢复、退出确认、后台语音和资源清理；未加入推送或来电功能。
+
+验证：类型检查、lint、20 项 Node 行为测试、隔离副本双端 clean prebuild 和 RN 0.88 双端 codegen 通过；已检查权限、iOS audio/voip、Android 前台服务及插件幂等。仓库内未生成 ios/、android/。本机无可用 Android SDK / 系统 JDK，Linux 无 Xcode，尚未完整编译或进行真实通话/后台验收。
+
+旧源码/act 对照、依赖依据、可应用 diff 和设备验收清单见 [X3 会议报告](x3-meeting-report.md)。
+
+### 2026-10-17 X3 / X4 集成与双端验证
+
+- 接入：`src/bridge/modules/index.ts` 注册 meeting，`_layout.tsx` 在 Stack 外挂载 `MeetingOverlay`。tsc、lint、会议 20 项测试通过。
+- 🔧 iOS：`react-native-agora@4.6.4` 以 `#import "RCTBridge.h"` / `"RCTFabricComponentsPlugins.h"` 引用 React 头文件，RN 0.88 预编译 Core 下找不到；新增 `patches/react-native-agora+4.6.4.patch` 改为 `<React/...>`。
+- 🔧 Android：`dootask-meeting` 模块缺少 `react-android` 依赖（ReactApplication / DeviceEventManagerModule 无法解析），且 `appContext.reactContext` 是普通 Context，需转 `ReactContext` 才能 `getNativeModule`；已修复。
+- ✅ 双端 Mac mini 模拟器 debug 构建通过。以假 appid 调用 `startMeeting`：iOS 会议页（网格、控制栏、相机权限申请）正常显示；Android 依次申请附近设备权限、提示“无法加入会议”，并回传失败事件，前端弹出“加入会议失败”。
+- M4 构建链路复核：主仓库 `cmd` / `electron/build.js` 的新增分支仅作用于 `app-expo`，旧 eeui 流程不变。
+
+未验证：真实通话（需前端会议入口获取的 token）、多人视频网格、最小化悬浮条、后台语音与 Android 保活通知、划掉任务后释放引擎；iOS `voip` 后台模式在二期上架前需结合 PushKit 复核；Android 会议错误弹窗按钮为系统默认 “OK”。包内 Release 模式（本地 Web 服务、旧缓存迁移、冷启动深链）仍待 workflow 出包后真机验证。

@@ -1,0 +1,31 @@
+// 通过 Gradle init script 配置 CNG 工程，无需改动生成的 build.gradle。
+gradle.beforeProject { project ->
+    project.plugins.withId('com.android.application') {
+        project.extensions.getByName('androidComponents').finalizeDsl { android ->
+            def keystorePath = System.getenv('ANDROID_KEYSTORE_PATH')
+            def release = android.buildTypes.getByName('release')
+            if (!keystorePath) {
+                release.signingConfig = android.signingConfigs.getByName('debug')
+                project.logger.lifecycle('DooTask 内测：Release 包使用 debug 签名')
+                return
+            }
+            def required = ['ANDROID_KEYSTORE_PASSWORD', 'ANDROID_KEY_ALIAS', 'ANDROID_KEY_PASSWORD']
+            required.each { name ->
+                if (!System.getenv(name)) {
+                    throw new GradleException("缺少签名环境变量 ${name}")
+                }
+            }
+            def keystore = new File(keystorePath)
+            if (!keystore.isAbsolute() || !keystore.isFile()) {
+                throw new GradleException('ANDROID_KEYSTORE_PATH 必须指向已存在的绝对路径')
+            }
+            def signing = android.signingConfigs.maybeCreate('internalRelease')
+            signing.storeFile = keystore
+            signing.storePassword = System.getenv('ANDROID_KEYSTORE_PASSWORD')
+            signing.keyAlias = System.getenv('ANDROID_KEY_ALIAS')
+            signing.keyPassword = System.getenv('ANDROID_KEY_PASSWORD')
+            release.signingConfig = signing
+            project.logger.lifecycle('DooTask 内测：Release 包使用指定 keystore 签名')
+        }
+    }
+}

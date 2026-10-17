@@ -127,6 +127,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       },
     ],
     './plugins/with-share',
+    './plugins/with-meeting',
   ],
   experiments: {
     typedRoutes: true,

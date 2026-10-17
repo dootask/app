@@ -1,0 +1,22 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+dependencies {
+  // 仅用于任务移除/JS Runtime 销毁时释放同一个 Iris 引擎，不引入第二套 Agora SDK。
+  implementation project(':react-native-agora')
+  // ReactApplication / ReactContext / DeviceEventManagerModule 由宿主 App 的 react-android 提供
+  implementation 'com.facebook.react:react-android'
+}
+
+group = 'expo.modules.dootaskmeeting'
+version = '1.0.0'
+
+android {
+  namespace "expo.modules.dootaskmeeting"
+  defaultConfig {
+    versionCode 1
+    versionName "1.0.0"
+  }
+}
