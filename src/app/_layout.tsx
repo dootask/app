@@ -1,5 +1,6 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 
 import { useBridgeRuntime } from '../bridge/hooks';
 import { useAppTheme } from '../bridge/messages/theme';
@@ -11,7 +12,7 @@ export default function RootLayout() {
   const { themeName, backgroundColor } = useAppTheme();
 
   return (
-    <>
+    <KeyboardProvider>
       <StatusBar style={themeName === 'dark' ? 'light' : 'dark'} />
       <Stack
         screenOptions={{
@@ -21,6 +22,6 @@ export default function RootLayout() {
       />
       <ToastHost />
       <MeetingOverlay />
-    </>
+    </KeyboardProvider>
   );
 }

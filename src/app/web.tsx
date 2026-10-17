@@ -19,6 +19,7 @@ import { openWeb } from '../bridge/modules/eeui/openWeb';
 import { SnapshotOverlay, usePageWebViewOverrides } from '../bridge/modules/webview/overrides';
 import { canOpenInBrowser, isPageTitle, useWebPageLabels } from '../bridge/modules/webview/pageOptions';
 import { createTarget, getPageWebViewState, patchWebView, setPageUrl } from '../bridge/modules/webview/state';
+import { KeyboardInset } from '../native/KeyboardInset';
 
 /**
  * 二级页面（对应 eeui pages/web.vue，前端以 openPage({url:'web.js', params:{url,...}}) 打开）
@@ -154,7 +155,7 @@ export default function WebPage() {
           <Text style={[styles.moreIcon, { color: theme.navColor }]}>•••</Text>
         </Pressable>
       </View>
-      <View style={styles.container}>
+      <KeyboardInset style={styles.container}>
         <View ref={captureRef} collapsable={false} style={styles.container}>
           <BridgeWebView
             {...webViewProps}
@@ -190,7 +191,7 @@ export default function WebPage() {
             </View>
           </View>
         )}
-      </View>
+      </KeyboardInset>
     </SafeAreaView>
   );
 }

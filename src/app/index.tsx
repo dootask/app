@@ -8,7 +8,7 @@ import { handleBackPress } from '../bridge/navigation';
 import { SnapshotOverlay, usePageWebViewOverrides } from '../bridge/modules/webview/overrides';
 import type { PageInfo } from '../bridge/protocol';
 import { FIRST_PAGE_NAME } from '../config';
-import { ensureAppUniqueId, migrateLegacyCaches, useDeepLinkHandler, useLocalWebReady } from '../native';
+import { ensureAppUniqueId, KeyboardInset, migrateLegacyCaches, useDeepLinkHandler, useLocalWebReady } from '../native';
 
 /**
  * 主页面（对应 eeui pages/index.vue）：全屏 WebView 承载 DooTask 前端
@@ -68,7 +68,7 @@ function ReadyMainPage({ bridgeRef: ref, webLoadedRef, webUrl }: {
   }, [ref]);
 
   return (
-    <View style={{ flex: 1 }}>
+    <KeyboardInset edgeToEdge style={{ flex: 1 }}>
       <View ref={captureRef} collapsable={false} style={{ flex: 1 }}>
         <BridgeWebView
           {...webViewProps}
@@ -78,6 +78,8 @@ function ReadyMainPage({ bridgeRef: ref, webLoadedRef, webUrl }: {
           onPage={onPage}
           contentInsetAdjustmentBehavior="never"
           automaticallyAdjustContentInsets={false}
+          // 对齐 eeui 首页 hiddenDone：隐藏 iOS 键盘上方的上一项/下一项/完成工具条
+          hideKeyboardAccessoryView
           onCreateTarget={onCreateTarget}
           onLoadStart={(event) => {
             // Android 的 pushState（doUpdateVisitedHistory）也会触发 loadStart 且不会有 onLoad，此时 loading 为 false
@@ -91,6 +93,6 @@ function ReadyMainPage({ bridgeRef: ref, webLoadedRef, webUrl }: {
         />
       </View>
       <SnapshotOverlay values={webViewValues} />
-    </View>
+    </KeyboardInset>
   );
 }

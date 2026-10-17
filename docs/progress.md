@@ -16,7 +16,8 @@
 新发现的待办先追加到这里，完成后改为 `[x]` 并注明日期 / 提交；各节「未验证」为当时的原始记录。
 
 **页面级兼容**
-- [ ] 聊天页弹出键盘时输入框被遮挡（前端针对 eeui 的键盘优化需逐项对齐）
+- [x] 聊天页弹出键盘时输入框被遮挡（Android 已修复并验证，见「键盘避让」；iOS 待手动确认）
+- [ ] iOS 聊天页键盘手动确认（模拟器无法自动点击）
 - [ ] 梳理前端其他针对 eeui 原生的页面优化（安全区、状态栏、返回手势等）并逐项核对
 
 **需真机 / 手动触发**
@@ -174,3 +175,10 @@
 - M4 构建链路复核：主仓库 `cmd` / `electron/build.js` 的新增分支仅作用于 `app-expo`，旧 eeui 流程不变。
 
 未验证：真实通话（需前端会议入口获取的 token）、多人视频网格、最小化悬浮条、后台语音与 Android 保活通知、划掉任务后释放引擎；iOS `voip` 后台模式在二期上架前需结合 PushKit 复核；Android 会议错误弹窗按钮为系统默认 “OK”。包内 Release 模式（本地 Web 服务、旧缓存迁移、冷启动深链）仍待 workflow 出包后真机验证。
+
+## 键盘避让（页面级兼容）
+
+- 原因：eeui Android 用 `adjustResize` 让窗口随键盘缩小；SDK 58 强制 edge-to-edge 后 `adjustResize` 不再生效，WebView 不缩小，聊天输入框被键盘盖住。
+- 修复：新增 `src/native/KeyboardInset.tsx`（react-native-keyboard-controller 的 `KeyboardAvoidingView`，padding 模式 + `automaticOffset`），根布局挂 `KeyboardProvider`；主页面与子页 WebView 外层包裹。主页面传 `edgeToEdge`，少抬一个底部安全区，让前端 `--navigation-bar-height` 占位藏在键盘后面（与 eeui 上报 `keyboardHeight = IME - safeAreaBottom` 一致），消除输入框与键盘间的空隙。
+- iOS 保持 WKWebView 原生行为（eeui 同样不改尺寸），主页面补 `hideKeyboardAccessoryView` 对齐 eeui `hiddenDone`。
+- ✅ Android 模拟器验证：聊天页点输入框后输入框紧贴键盘上方、可正常输入，收起键盘后布局恢复。
