@@ -1,0 +1,8 @@
+{
+  "name": "dootask-legacy-store",
+  "version": "1.0.0",
+  "description": "DooTask 旧 eeui 缓存读取及退到桌面能力",
+  "main": "index.ts",
+  "private": true,
+  "license": "MIT"
+}

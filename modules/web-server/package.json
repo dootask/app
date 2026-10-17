@@ -1,0 +1,8 @@
+{
+  "name": "dootask-web-server",
+  "version": "1.0.0",
+  "description": "DooTask 内置前端静态资源服务",
+  "main": "index.ts",
+  "private": true,
+  "license": "MIT"
+}
