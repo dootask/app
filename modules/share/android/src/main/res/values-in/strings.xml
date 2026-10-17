@@ -1,0 +1,15 @@
+<resources>
+  <string name="dootask_share_cancelTitle">Abbrechen</string>
+  <string name="dootask_share_sendTitle">Senden an</string>
+  <string name="dootask_share_sendingTitle">Gesendet</string>
+  <string name="dootask_share_sendSuccessTitle">Erfolgreich gesendet</string>
+  <string name="dootask_share_sendFailTitle">Сбой отправки</string>
+  <string name="dootask_share_unLoginTitle">Bitte anmelden und verwenden</string>
+  <string name="dootask_share_emptyShareTitle">Es konnten keine Freigabedaten abgerufen werden</string>
+  <string name="dootask_share_netWorkErrorTitle">Netzwerk-Ausnahme</string>
+  <string name="dootask_share_folderUnsupportTitle">Ordner hochladen wird zur Zeit nicht unterstützt</string>
+  <string name="dootask_share_allTitle">Alle</string>
+  <string name="dootask_share_successTotal">Datei-Upload war erfolgreich</string>
+  <string name="dootask_share_failTotal">Datei-Upload fehlgeschlagen</string>
+  <string name="dootask_share_searchTitle">Cari</string>
+</resources>

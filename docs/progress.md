@@ -80,3 +80,45 @@
 - 本地 Web 服务的运行时验证。开发构建设置了 `EXPO_PUBLIC_WEB_URL`，不会启动本地 Web 服务；要等 M4 把真实前端产物放进 `assets/web/` 后验证。
 - 从旧版升级时的缓存迁移，需要先装旧版 eeui 包再覆盖安装。
 - 冷启动深链、goDesktop、快照（`react-native-view-shot` 已安装，本次构建已链接，设备上尚未手测）。
+
+### 2026-10-17 X2 扫码、照片上传与媒体预览
+
+新增 `src/features/media/` 自注册入口、扫码及媒体预览路由，实现 openScaner、getLatestPhoto、uploadPhoto / cancelUploadPhoto、picturePreview / videoPreview。保留扫码生命周期、连续扫码、手电筒事件、上传 ready → 完成顺序，以及旧双端在上传响应和取消回调上的差异。请求与任务登记放在 PageHandle.state；app.config.ts 仅追加官方媒体插件和中文权限文案；没有安装依赖。
+
+验证：`npx tsc --noEmit`、`npx expo lint`、24 项 Node 无设备测试通过；`CI=1 npx expo prebuild --clean --no-install` 成功，Info.plist 中文用途说明、Android 图片 / 相机权限、包名和条码功能配置已检查，生成的 ios/、android/ 已删除。本机 Android SDK / JDK 路径不存在，未执行 assembleDebug；Linux 无 Xcode，未编译 iOS，未进行本批设备验收。
+
+待集成：在 `src/bridge/modules/index.ts` 加 `import '../../features/media';`。getLatestPhoto 的返回结构和秒值已兼容，但 Expo Android 只提供 DATE_TAKEN，旧壳使用 DATE_ADDED；导入旧照片场景仍需集成方补原生查询，因此接口清单保留 🟡。SDK 58 的时间类型注释与原生实现也不一致，已按实际毫秒值转换。文件清单、旧源码行号、平台差异、验收步骤见 [X2 媒体实现报告](x2-media-report.md)。
+
+### 2026-10-17 X2 通知与 Android WebView 加固
+
+已实现本地通知权限查询（boolean 原页面回调）、两个角标 action 和通知清理；通知目录通过副作用自注册，待集成方在模块入口导入。没有注册远程推送 token，未新增或升级依赖。iOS 首次设置角标沿用旧壳 Badge / Alert / Sound 的授权范围；Android 角标受桌面支持限制，且当前 Expo SDK 的角标归零会清除通知栏。
+
+通过 patch-package 生成 `patches/react-native-webview+14.0.1.patch`：支持时在加载 source 前注册 DOCUMENT_START_SCRIPT，脚本 / 开关变化时移除并替换 handler，不与 onPageStarted 重复执行；不支持时保留原路径。补齐 Fabric / Paper 的长按振动和原生禁选 props，BridgeWebView 直接订阅各自 page.state，覆盖跨域 iframe 和独立自测页。package.json 仅新增 postinstall 一行。
+
+验证：最终全仓 `npx tsc --noEmit`、`npx expo lint` 通过；15 组无设备行为检查通过；双端 Fabric codegen 通过。补丁在 npm pack 得到的干净 14.0.1 副本上 dry-run 和实际应用均成功，9 个文件逐字节一致。隔离副本中的双端 clean prebuild 成功；建议配置下确认不生成 aps-environment，且后台模式不含 remote-notification。
+
+待集成：添加通知目录 import；显式配置 expo-notifications 的 enableRemoteNotifications / enableBackgroundRemoteNotifications 为 false，并移除已有后台 remote-notification。默认配置仍会生成 APNs entitlement，已在隔离 prebuild 复现。当前机器没有可用 Android SDK / 系统 JDK，Linux 无 Xcode，未做双端原生编译或设备手测。改动清单、旧源码行号、配置片段及设备验收清单见 [X2 通知与 WebView 报告](x2-notify-webview-report.md)。
+
+### 2026-10-17 X2 系统分享
+
+新增 `modules/share` 本地 Expo 模块、`plugins/with-share.js` 和 `src/features/share` 自注册入口，实现 userChatList / userUploadUrl 及双端原生分享页。iOS 生成 `com.dootask.task.shareExtension` target，主 App / 扩展共用 `group.im.dootask`，同时兼容旧 MMWormhole `share/*.archive`；Android 保留 eeuiCaches JSON 契约，独立 Activity 接收 SEND / SEND_MULTIPLE 和 ClipData。两端均直接选择会话或文件目录后上传，支持搜索、多语言、进度、取消和失败统计，不依赖主 App 的 JS 启动，不改已有深链入口。
+
+验证：类型检查、lint、6 项桥接契约测试和 clean prebuild 通过；真实生成工程的扩展 target、显式构建依赖、签名嵌入、本地化资源、双方 App Group、Android intent-filter 均通过检查；插件重复执行不产生重复项，并验证构建 team 传递和双端模块 autolinking。四个 Android 原生业务类另经 Kotlin 2.2.20 / API 36 类库宿主编译，临时 JRE 21 下 8 组缓存/实际 HTTP multipart 回归通过；该检查使用临时 R ID，不含 Expo binding、aapt 或 Gradle。未新增依赖，生成目录已删除。Linux 无 Xcode，本机 Android SDK / 系统 JDK 路径不存在，双端完整编译与设备冷/热分享验收仍需构建机完成。
+
+待集成：在 `src/bridge/modules/index.ts` 加 `import '../../features/share';`，并配置两个 Apple App ID 的签名与 App Group 关联。完整方案、旧源码行号、验证边界与设备清单见 [X2 分享报告](x2-share-report.md)。
+
+### 2026-10-17 X2 集成与双端验证
+
+集成方已在 `src/bridge/modules/index.ts` 导入 media / notifications / share；`app.config.ts` 加入 expo-notifications（`enableRemoteNotifications: false`、`enableBackgroundRemoteNotifications: false`），并从 `UIBackgroundModes` 移除 `remote-notification`。Mac 构建时 postinstall 成功应用 webview 补丁，iOS 包内已嵌入 `PlugIns/shareExtension.appex`。
+
+双端模拟器结果：
+
+- ✅ 原生构建双端通过（新增 DooTaskShare 模块、分享扩展 target、patch 后的 RNCWebView）。
+- ✅ 桥接自测 19/19；Android「requireModuleJs 已注入」不再出现 waitedMs，文档起始注入生效。
+- ✅ getNotificationPermission 经 `window.__onNotificationPermissionStatus` 回传 boolean：未授权为 false，Android `pm grant POST_NOTIFICATIONS` 后为 true；iOS 首次 setBadgeNum 时弹出系统通知授权框。Android 模拟器桌面不支持数字角标，只打印警告。
+- ✅ openScaner：双端弹出相机授权（iOS 显示中文用途说明），Android 授权后虚拟摄像头取景正常，关闭 / 手电筒 / 从图片识别按钮齐全；iOS 模拟器无摄像头，页面正常渲染。
+- ✅ picturePreview：多图、初始 position、页码（2/3、3/3）双端正常。
+- ✅ Android 系统分享：`ACTION_SEND text/plain` 打开独立 ShareActivity，用缓存配置拉到会话列表。
+- 🔧 修复：首页 / 子页 WebView 的返回键监听原先在被扫码、预览等原生页覆盖时仍生效，导致 Android 返回键关不掉扫码页。改为 `useFocusEffect` 仅在获得焦点时监听，复测返回键可正常关闭扫码与预览。
+
+未验证（需手测或真机）：分享实际发送（会在测试服务器真实发消息）、iOS 分享扩展（需从其他 App 的分享面板触发）、扫码识别结果回调、getLatestPhoto / uploadPhoto、videoPreview、长按振动与禁选、clearAllNotify。Android getLatestPhoto 的 DATE_ADDED 语义仍为 🟡。

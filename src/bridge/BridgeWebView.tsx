@@ -18,6 +18,7 @@ import { buildSnapshot, getInjectedScript, registerPage, unregisterPage, type Pa
 import { parseBridgeCall, type PageInfo } from './protocol';
 import { bridgeStore } from './store';
 import { useThemeName } from './hooks';
+import { DEFAULT_OVERRIDES, getPageWebViewState } from './modules/webview/state';
 
 import './modules';
 
@@ -73,6 +74,7 @@ export const BridgeWebView = forwardRef<BridgeWebViewHandle, BridgeWebViewProps>
   const webviewRef = useRef<WebViewInstance>(null);
   const pageRef = useRef<PageHandle | null>(null);
   const themeName = useThemeName();
+  const [nativePreferences, setNativePreferences] = useState(DEFAULT_OVERRIDES);
 
   // 启动脚本带快照；同步值变化时（防抖）刷新，保证页面重载后拿到最新快照
   const [injected, setInjected] = useState(() => getInjectedScript(info));
@@ -91,8 +93,14 @@ export const BridgeWebView = forwardRef<BridgeWebViewHandle, BridgeWebViewProps>
   useEffect(() => {
     const page = registerPage(info, (js) => webviewRef.current?.injectJavaScript(js));
     pageRef.current = page;
+    // 直接使用 BridgeWebView 的页面（如自测页）也必须响应原生长按开关。
+    const state = Platform.OS === 'android' ? getPageWebViewState(page) : undefined;
+    const updateNativePreferences = () => { if (state) setNativePreferences(state.values); };
+    state?.listeners.add(updateNativePreferences);
+    updateNativePreferences();
     onPage?.(page);
     return () => {
+      state?.listeners.delete(updateNativePreferences);
       pageRef.current = null;
       unregisterPage(info.pageName);
     };
@@ -182,6 +190,10 @@ export const BridgeWebView = forwardRef<BridgeWebViewHandle, BridgeWebViewProps>
       onContentProcessDidTerminate={reload}
       onRenderProcessGone={reload}
       {...rest}
+      {...(Platform.OS === 'android' ? {
+        hapticBackEnabled: nativePreferences.hapticBackEnabled,
+        disabledUserLongClickSelect: nativePreferences.disabledUserLongClickSelect,
+      } : {})}
       ref={webviewRef}
       style={[styles.webview, { backgroundColor: themeName === 'dark' ? '#131313' : '#ffffff' }, style]}
       source={source}

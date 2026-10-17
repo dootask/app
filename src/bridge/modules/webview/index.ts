@@ -18,7 +18,6 @@ registerModule('webview', {
 
   setHapticBackEnabled(page, enabled: unknown) {
     if (Platform.OS !== 'android') return;
-    // WebView 14 未暴露 Android View.setHapticFeedbackEnabled，留给集成方补原生转发。
     patchWebView(page, { hapticBackEnabled: !!enabled });
   },
 

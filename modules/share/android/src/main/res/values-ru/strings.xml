@@ -1,0 +1,15 @@
+<resources>
+  <string name="dootask_share_cancelTitle">Отмена</string>
+  <string name="dootask_share_sendTitle">Отправка в</string>
+  <string name="dootask_share_sendingTitle">Отправка</string>
+  <string name="dootask_share_sendSuccessTitle">Отправка успешна</string>
+  <string name="dootask_share_sendFailTitle">Ошибка отправки</string>
+  <string name="dootask_share_unLoginTitle">Пожалуйста, войдите в систему и используйте</string>
+  <string name="dootask_share_emptyShareTitle">Невозможно получить данные для обмена</string>
+  <string name="dootask_share_netWorkErrorTitle">Ошибка сети</string>
+  <string name="dootask_share_folderUnsupportTitle">Загрузка папок в настоящее время не поддерживается</string>
+  <string name="dootask_share_allTitle">Все</string>
+  <string name="dootask_share_successTotal">Загрузка файла выполнена успешно</string>
+  <string name="dootask_share_failTotal">Ошибка загрузки файла</string>
+  <string name="dootask_share_searchTitle">Поиск</string>
+</resources>

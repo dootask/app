@@ -1,0 +1,15 @@
+<resources>
+  <string name="dootask_share_cancelTitle">Cancel</string>
+  <string name="dootask_share_sendTitle">Sending to</string>
+  <string name="dootask_share_sendingTitle">Sending</string>
+  <string name="dootask_share_sendSuccessTitle">Sending successfully</string>
+  <string name="dootask_share_sendFailTitle">Sending failure</string>
+  <string name="dootask_share_unLoginTitle">Please log in and use</string>
+  <string name="dootask_share_emptyShareTitle">Unable to get share data</string>
+  <string name="dootask_share_netWorkErrorTitle">Network exception</string>
+  <string name="dootask_share_folderUnsupportTitle">Upload folder is not supported at this time</string>
+  <string name="dootask_share_allTitle">All</string>
+  <string name="dootask_share_successTotal">File upload was successful</string>
+  <string name="dootask_share_failTotal">File upload failed</string>
+  <string name="dootask_share_searchTitle">Search</string>
+</resources>

@@ -42,6 +42,7 @@
     "typescript": "~6.0.3"
   },
   "scripts": {
+    "postinstall": "patch-package",
     "start": "EXPO_PACKAGER_PROXY_URL=https://2221--main--apang--kuaifan.coder.dootask.com expo start --dev-client --port 2221",
     "start:local": "expo start --dev-client --port 2221",
     "lint": "expo lint",

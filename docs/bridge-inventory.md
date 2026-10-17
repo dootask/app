@@ -7,7 +7,7 @@
 
 ## 1. 机制
 
-- 注入方式：在页面内容加载前注入 `window.requireModuleJs(name)`，实现见 `src/bridge/injected.ts`。
+- 注入方式：在页面内容加载前注入 `window.requireModuleJs(name)`，实现见 `src/bridge/injected.ts`。Android 已通过 WebView 14.0.1 补丁优先使用 `DOCUMENT_START_SCRIPT`；不支持时保留 onPageStarted 回退，设备时序待验收（见 `x2-notify-webview-report.md`）。
 - 同步方法：直接读取页面内的快照。原生侧任何值变化都会向**所有** WebView 广播增量（`src/bridge/pages.ts`）。
 - 异步方法：通过 `postMessage` 发送 `{channel:'__eeui__', module, method, args}`。函数参数会被替换成 `{__cb:id}`，原生侧调用 `page.callback(ref, data, keep)` 回传；需要多次触发的回调要传 `keep=true`。
 - 返回值：异步方法的同步返回值一律是 `undefined`，前端没有依赖这些返回值。
@@ -50,14 +50,14 @@
 | keepScreenOn() / keepScreenOff() | — | expo-keep-awake | ✅ X1 |
 | keyboardHide() | — | Keyboard.dismiss + WebView blur | ✅ X1 |
 | copyText(text) | — | expo-clipboard | ✅ X1 |
-| openScaner({}, cb) | → `{status:'success', text}` | 扫码页（expo-camera） | ⬜ X2 |
+| openScaner({}, cb) | → `{pageName:'scanPage', status:'create'}` → `{status:'success', text, source, format, result}` → `{pageName:'scanPage', status:'destroy'}`；支持 title / desc / continuous | 扫码页（expo-camera），手电筒回调 openLight / offLight | ✅ X2（`src/features/media`；待集成 import 与设备验证） |
 | checkUpdate() | — | 一期为空实现 | ✅ X1（按一期范围保留空实现） |
 | shakeToEditOn() / shakeToEditOff() | — | iOS 摇一摇撤销；可空实现 | ✅ X1（按一期范围保留空实现） |
 | getSafeAreaInsets(cb) | → `{status:'success', top, bottom, width, height}` | 旧 iOS 返回 UIKit point，Android 返回物理像素；详见旧 DeviceUtil.m:726 / eeuiScreenUtils.java:82 | ✅ X1 |
 | getDeviceInfo(cb) | → `{status:'success', manufacturer, brand, model, modelName, deviceName, systemName, systemVersion}` | expo-device；Android 和 iOS 16+ 的 deviceName 与旧实现一致返回空串 | ✅ X1 |
-| getLatestPhoto(cb) | → `{status, thumbnail:{width, base64}, original:{width, path}, created, error}` | 最近一张照片（“发送最近照片”） | ⬜ X2 |
-| uploadPhoto(params, cb) | `{url, data, headers, path, fieldName}` → `{status:'ready', id}`，然后 `{status:'success', data}` 或 `{status:'error'}` | 多次回调 | ⬜ X2 |
-| cancelUploadPhoto(id, cb) | → cb | | ⬜ X2 |
+| getLatestPhoto(cb) | → `{status, thumbnail:{width, base64}, original:{width, path}, created, error}` | 最近一张照片（“发送最近照片”），base64 含 data URI 前缀，created 为秒 | 🟡 X2（数据、权限、缩略图和路径已实现；Expo Android 按 DATE_TAKEN，旧壳按 DATE_ADDED，严格对齐需原生补充，见 x2-media-report.md） |
+| uploadPhoto(params, cb) | `{url, data, headers, path, fieldName}` → `{status:'ready', id:url}`，然后 `{status:'success', statusCode, data}` 或 `{status:'error', error}` | 多次回调；保留旧 Android 字符串 / iOS JSON 响应差异 | ✅ X2（SDK 58 UploadTask；待集成 import 与设备验证） |
+| cancelUploadPhoto(id, cb) | → `{status:'success', id}` 或 `{status:'error', error}` | Android 原上传回调随后 error，iOS 原回调只释放 | ✅ X2（支持 ready 内取消、跨页面取消及竞态保护） |
 
 ## 4. 异步方法：webview 模块
 
@@ -66,8 +66,8 @@
 | sendMessage(obj) | 按 `obj.action` 路由到第 5 节 | ✅ C（路由） |
 | setUrl(url) | 当前 WebView 跳转；相同 URL 重新加载 | ✅ X1 |
 | createSnapshot(cb) / showSnapshot() / hideSnapshot() | 按页面截取并覆盖显示；`createSnapshot` 按旧 iOS eeuiWKWebViewComponent.m:494/497 回调 boolean（不是 `{status}`） | ✅ X1（实际截图画面、后台切换待设备验收） |
-| setHapticBackEnabled(bool) | 仅 Android | 🟡 X1（开关已存入 page.state；WebView 14 无对应原生 prop/command，系统长按振动尚未改变，待集成方补原生转发） |
-| setDisabledUserLongClickSelect(bool) | 仅 Android；页面 CSS / contextmenu / selectstart 和 menuItems 联动，重载后重放 | 🟡 X1（主文档已实现；跨域 iframe 不受主文档 CSS / 事件控制，完整长按拦截需集成方补原生转发，输入框待设备验收） |
+| setHapticBackEnabled(bool) | 仅 Android | ✅ X2（page.state → 原生 prop → setHapticFeedbackEnabled；Fabric / Paper 均已接线，实际振动待设备验收） |
+| setDisabledUserLongClickSelect(bool) | 仅 Android；原生消费长按事件，保留页面 CSS / contextmenu / selectstart 和 menuItems 联动 | ✅ X2（WebView 14.0.1 补丁覆盖跨域 iframe；开关和重载恢复已接线，输入框及实际长按待设备验收） |
 | setScrollEnabled(bool) | WebView prop + 可恢复的网页滚动拦截 | ✅ X1 |
 
 ## 5. sendMessage action
@@ -80,13 +80,13 @@
 | callTel | `{tel}` | `tel:` 链接 | ✅ X1 |
 | setVibrate | `{time?}` | Vibration；Android 缺省 500ms，iOS 使用系统振动 | ✅ X1 |
 | gotoSetting | — | Linking.openSettings | ✅ X1 |
-| getNotificationPermission | → `window.__onNotificationPermissionStatus(ret)` | 一期只查询权限 | ⬜ X2 |
-| setBdageNotify / setBadgeNum | `{bdage}` | 角标 | ⬜ X2 |
-| clearAllNotify | — | 清除通知 | ⬜ X2 |
-| picturePreview | `{language, position, paths}` | 原生图片预览 | ⬜ X2 |
-| videoPreview | `{language, path}` | 原生视频播放 | ⬜ X2 |
-| userChatList | `{language, url}` | 系统分享扩展所需的会话列表（iOS App Group / Android 缓存） | ⬜ X2 |
-| userUploadUrl | `{dirUrl, chatUrl}` | 同上 | ⬜ X2 |
+| getNotificationPermission | → `window.__onNotificationPermissionStatus(ret)`，ret 为 boolean | 一期只查询权限，不弹窗 | ✅ X2（本地通知模块自注册；待集成 import，设备待验收） |
+| setBdageNotify / setBadgeNum | `{bdage}` | iOS 首次设置时申请角标 / 提醒 / 声音权限；Android 尽力设置 | ✅ X2（不注册推送 token；Android 桌面支持有限，插件配置见报告） |
+| clearAllNotify | — | 清除已展示和待发送的本地通知 | ✅ X2（不重置 iOS 角标、不触发授权；设备待验收） |
+| picturePreview | `{language, position, paths}` | 原生图片预览 | ✅ X2（多图、初始索引、左右滑动、双指缩放、关闭；待集成 import 与设备验证） |
+| videoPreview | `{language, path}` | 原生视频播放 | ✅ X2（expo-video、原生播放控件、失焦 / 后台暂停；待集成 import 与设备验证） |
+| userChatList | `{language, url}` | 系统分享扩展所需的会话列表（iOS App Group / Android 缓存） | ✅ X2（`src/features/share`；App Group UserDefaults + 旧 archive / Android eeuiCaches；待集成 import 与设备验收） |
+| userUploadUrl | `{dirUrl, chatUrl}` | 同上 | ✅ X2（保留 upLoadUrl / fileUpLoadUrl；双端原生分享页与上传、CNG 扩展 / Activity 已实现，见 x2-share-report.md） |
 | startMeeting | `{meetingParams:{...}}` | Agora 会议（M3），事件通过 `__onMeetingEvent` 回传 | ⬜ X(M3) |
 | updateMeetingInfo | `{infos:{uuid, avatar, username}}` | M3 | ⬜ X(M3) |
 | setUmengAlias / delUmengAlias | `{url}` | 一期不接推送，只记录 action 日志；二期改为 DooPush | ✅ X1（日志占位） |
@@ -102,7 +102,7 @@
 | `__onPageResume(resumeNum)` / `__onPagePause()` | 页面聚焦且 App 在前台时视为 resume；首次也会触发；resumeNum 从 0 开始递增 | ✅ C |
 | `__onKeyboardStatus({keyboardType:'show'\|'hide', keyboardHeight})` | 键盘弹出或收起 | ✅ C |
 | `__onCreateTarget(url)` | target=_blank 或 window.open | ✅ C（主页面）；✅ X1（二级页按白名单在当前页加载，与旧 web.vue 一致） |
-| `__onNotificationPermissionStatus(ret)` | getNotificationPermission 返回 | ⬜ X2 |
+| `__onNotificationPermissionStatus(ret)` | getNotificationPermission 返回 boolean；iOS 完整授权才为 true | ✅ X2（原页面回调，查询失败返回 false；待集成 import） |
 | `__onMeetingEvent(param)` | 会议事件 | ⬜ X(M3) |
 | `__handleLink(link)` | 通过深链 `dootask://` 打开；移除 scheme 后传递路径，前端尚未就绪时延迟 2 秒 | ✅ X1（`useDeepLinkHandler` + `+native-intent.tsx`，保留 bridge-test；待首页接入及实机验证） |
 

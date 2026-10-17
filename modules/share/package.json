@@ -1,0 +1,8 @@
+{
+  "name": "dootask-share",
+  "version": "1.0.0",
+  "description": "DooTask 系统分享配置与原生接收界面",
+  "main": "index.ts",
+  "private": true,
+  "license": "MIT"
+}

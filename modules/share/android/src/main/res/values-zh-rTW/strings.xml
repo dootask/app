@@ -1,0 +1,15 @@
+<resources>
+  <string name="dootask_share_cancelTitle">取消</string>
+  <string name="dootask_share_sendTitle">發送至</string>
+  <string name="dootask_share_sendingTitle">發送中</string>
+  <string name="dootask_share_sendSuccessTitle">發送成功</string>
+  <string name="dootask_share_sendFailTitle">發送失敗</string>
+  <string name="dootask_share_unLoginTitle">請登錄後使用</string>
+  <string name="dootask_share_emptyShareTitle">無法獲取分享數據</string>
+  <string name="dootask_share_netWorkErrorTitle">網絡異常</string>
+  <string name="dootask_share_folderUnsupportTitle">暫不支持上傳文件夾</string>
+  <string name="dootask_share_allTitle">全部</string>
+  <string name="dootask_share_successTotal">個文件上傳成功</string>
+  <string name="dootask_share_failTotal">個文件上傳失敗</string>
+  <string name="dootask_share_searchTitle">搜索</string>
+</resources>

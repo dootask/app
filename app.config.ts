@@ -52,7 +52,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         NSAllowsArbitraryLoads: true,
         NSAllowsLocalNetworking: true,
       },
-      UIBackgroundModes: ['audio', 'remote-notification'],
+      UIBackgroundModes: ['audio'],
       NSCameraUsageDescription: usage('需要访问您的相机，以便您可以扫描二维码、拍摄照片或进行视频会议。'),
       NSMicrophoneUsageDescription: usage('需要访问您的麦克风，以便您可以录制语音交流。'),
       NSPhotoLibraryUsageDescription: usage('需要访问您的相册，以便您可以选择和发送图片。'),
@@ -101,6 +101,32 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       },
     ],
     './plugins/with-web-assets',
+    [
+      'expo-camera',
+      {
+        cameraPermission: usage('需要访问您的相机，以便您可以扫描二维码、拍摄照片或进行视频会议。'),
+        microphonePermission: usage('需要访问您的麦克风，以便您可以录制语音交流。'),
+        barcodeScannerEnabled: true,
+      },
+    ],
+    [
+      'expo-media-library',
+      {
+        photosPermission: usage('需要访问您的相册，以便您可以查看最近照片、选择和发送图片。'),
+        savePhotosPermission: usage('需要访问您的相册，以便您可以保存图片。'),
+        granularPermissions: ['photo', 'video'],
+      },
+    ],
+    'expo-video',
+    [
+      'expo-notifications',
+      {
+        // 一期只用本地权限/角标，不写 aps-environment；二期接 DooPush 时再开启
+        enableRemoteNotifications: false,
+        enableBackgroundRemoteNotifications: false,
+      },
+    ],
+    './plugins/with-share',
   ],
   experiments: {
     typedRoutes: true,

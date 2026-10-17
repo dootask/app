@@ -1,0 +1,261 @@
+diff --git a/node_modules/react-native-webview/android/src/main/java/com/reactnativecommunity/webview/RNCWebView.java b/node_modules/react-native-webview/android/src/main/java/com/reactnativecommunity/webview/RNCWebView.java
+index 80c6803..bb9be6b 100644
+--- a/node_modules/react-native-webview/android/src/main/java/com/reactnativecommunity/webview/RNCWebView.java
++++ b/node_modules/react-native-webview/android/src/main/java/com/reactnativecommunity/webview/RNCWebView.java
+@@ -18,6 +18,7 @@ import android.webkit.WebViewClient;
+ import androidx.annotation.NonNull;
+ import androidx.annotation.Nullable;
+ import androidx.webkit.JavaScriptReplyProxy;
++import androidx.webkit.ScriptHandler;
+ import androidx.webkit.WebMessageCompat;
+ import androidx.webkit.WebViewCompat;
+ import androidx.webkit.WebViewFeature;
+@@ -44,6 +45,7 @@ import com.reactnativecommunity.webview.events.TopMessageEvent;
+ import org.json.JSONException;
+ import org.json.JSONObject;
+ 
++import java.util.Collections;
+ import java.util.List;
+ import java.util.Map;
+ import java.util.Set;
+@@ -53,6 +55,9 @@ public class RNCWebView extends WebView implements LifecycleEventListener {
+     String injectedJS;
+     protected @Nullable
+     String injectedJSBeforeContentLoaded;
++    private @Nullable ScriptHandler documentStartScriptHandler;
++    private @Nullable String registeredDocumentStartScript;
++    private boolean disabledUserLongClickSelect = false;
+     protected static final String JAVASCRIPT_INTERFACE = "ReactNativeWebView";
+     protected @Nullable
+     RNCWebViewBridge fallbackBridge;
+@@ -60,8 +65,8 @@ public class RNCWebView extends WebView implements LifecycleEventListener {
+     WebViewCompat.WebMessageListener bridgeListener = null;
+ 
+     /**
+-     * android.webkit.WebChromeClient fundamentally does not support JS injection into frames other
+-     * than the main frame, so these two properties are mostly here just for parity with iOS & macOS.
++     * 普通注入和不支持 DOCUMENT_START_SCRIPT 的回退仍只支持主框架；
++     * 文档起始脚本通过 window.top 判断是否只在主框架执行。
+      */
+     protected boolean injectedJavaScriptForMainFrameOnly = true;
+     protected boolean injectedJavaScriptBeforeContentLoadedForMainFrameOnly = true;
+@@ -89,6 +94,12 @@ public class RNCWebView extends WebView implements LifecycleEventListener {
+         super(reactContext);
+         mMessagingJSModule = ((ThemedReactContext) this.getContext()).getReactApplicationContext().getJSModule(RNCWebViewMessagingModule.class);
+         progressChangedFilter = new ProgressChangedFilter();
++        // 与旧 eeui 相同：消费原生长按事件，覆盖跨域 iframe 的内容选择。
++        setOnLongClickListener(view -> disabledUserLongClickSelect);
++    }
++
++    public void setDisabledUserLongClickSelect(boolean disabled) {
++        disabledUserLongClickSelect = disabled;
+     }
+ 
+     public void setBasicAuthCredential(RNCBasicAuthCredential credential) {
+@@ -309,6 +320,11 @@ public class RNCWebView extends WebView implements LifecycleEventListener {
+     }
+ 
+     public void callInjectedJavaScriptBeforeContentLoaded() {
++        if (WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
++            // 已在加载前注册文档起始脚本，不能在 onPageStarted 重复执行。
++            injectJavascriptObject();
++            return;
++        }
+         if (getSettings().getJavaScriptEnabled() &&
+                 injectedJSBeforeContentLoaded != null &&
+                 !TextUtils.isEmpty(injectedJSBeforeContentLoaded)) {
+@@ -317,6 +333,36 @@ public class RNCWebView extends WebView implements LifecycleEventListener {
+         }
+     }
+ 
++    public void updateInjectedJavaScriptBeforeContentLoaded() {
++        if (!WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
++            return;
++        }
++        String script = null;
++        if (getSettings().getJavaScriptEnabled() && !TextUtils.isEmpty(injectedJSBeforeContentLoaded)) {
++            script = "(function() {\n"
++                    + (injectedJavaScriptBeforeContentLoadedForMainFrameOnly
++                        ? "if (window.top !== window) { return; }\n" : "")
++                    + injectedJSBeforeContentLoaded + ";\n})();";
++        }
++        if (TextUtils.equals(script, registeredDocumentStartScript)) {
++            return;
++        }
++        removeDocumentStartScript();
++        if (script != null) {
++            documentStartScriptHandler = WebViewCompat.addDocumentStartJavaScript(
++                    this, script, Collections.singleton("*"));
++            registeredDocumentStartScript = script;
++        }
++    }
++
++    private void removeDocumentStartScript() {
++        if (documentStartScriptHandler != null) {
++            documentStartScriptHandler.remove();
++            documentStartScriptHandler = null;
++        }
++        registeredDocumentStartScript = null;
++    }
++
+     protected String injectedJavaScriptObject = null;
+ 
+     public void setInjectedJavaScriptObject(String obj) {
+@@ -416,6 +462,7 @@ public class RNCWebView extends WebView implements LifecycleEventListener {
+ 
+     @Override
+     public void destroy() {
++        removeDocumentStartScript();
+         if (mWebChromeClient != null) {
+             mWebChromeClient.onHideCustomView();
+         }
+diff --git a/node_modules/react-native-webview/android/src/main/java/com/reactnativecommunity/webview/RNCWebViewManagerImpl.kt b/node_modules/react-native-webview/android/src/main/java/com/reactnativecommunity/webview/RNCWebViewManagerImpl.kt
+index f83033b..a056808 100644
+--- a/node_modules/react-native-webview/android/src/main/java/com/reactnativecommunity/webview/RNCWebViewManagerImpl.kt
++++ b/node_modules/react-native-webview/android/src/main/java/com/reactnativecommunity/webview/RNCWebViewManagerImpl.kt
+@@ -269,6 +269,8 @@ class RNCWebViewManagerImpl(private val newArch: Boolean = false) {
+     }
+ 
+     fun onAfterUpdateTransaction(viewWrapper: RNCWebViewWrapper) {
++        // 等所有 props 应用后、任何 source 加载前注册，避免 prop 顺序影响首屏注入。
++        viewWrapper.webView.updateInjectedJavaScriptBeforeContentLoaded()
+         mPendingSource?.let { source ->
+             loadSource(viewWrapper, source)
+         }
+@@ -492,6 +494,14 @@ class RNCWebViewManagerImpl(private val newArch: Boolean = false) {
+         view.injectedJS = injectedJavaScript
+     }
+ 
++    fun setHapticBackEnabled(viewWrapper: RNCWebViewWrapper, enabled: Boolean) {
++        viewWrapper.webView.isHapticFeedbackEnabled = enabled
++    }
++
++    fun setDisabledUserLongClickSelect(viewWrapper: RNCWebViewWrapper, disabled: Boolean) {
++        viewWrapper.webView.setDisabledUserLongClickSelect(disabled)
++    }
++
+     fun setInjectedJavaScriptBeforeContentLoaded(viewWrapper: RNCWebViewWrapper, value: String?) {
+         val view = viewWrapper.webView
+         view.injectedJSBeforeContentLoaded = value
+diff --git a/node_modules/react-native-webview/android/src/newarch/com/reactnativecommunity/webview/RNCWebViewManager.java b/node_modules/react-native-webview/android/src/newarch/com/reactnativecommunity/webview/RNCWebViewManager.java
+index fa8efb8..7f306a2 100644
+--- a/node_modules/react-native-webview/android/src/newarch/com/reactnativecommunity/webview/RNCWebViewManager.java
++++ b/node_modules/react-native-webview/android/src/newarch/com/reactnativecommunity/webview/RNCWebViewManager.java
+@@ -160,6 +160,18 @@ public class RNCWebViewManager extends ViewGroupManager<RNCWebViewWrapper>
+         mRNCWebViewManagerImpl.setIncognito(view, value);
+     }
+ 
++    @Override
++    @ReactProp(name = "hapticBackEnabled", defaultBoolean = true)
++    public void setHapticBackEnabled(RNCWebViewWrapper view, boolean enabled) {
++        mRNCWebViewManagerImpl.setHapticBackEnabled(view, enabled);
++    }
++
++    @Override
++    @ReactProp(name = "disabledUserLongClickSelect")
++    public void setDisabledUserLongClickSelect(RNCWebViewWrapper view, boolean disabled) {
++        mRNCWebViewManagerImpl.setDisabledUserLongClickSelect(view, disabled);
++    }
++
+     @Override
+     @ReactProp(name = "injectedJavaScript")
+     public void setInjectedJavaScript(RNCWebViewWrapper view, @Nullable String value) {
+diff --git a/node_modules/react-native-webview/android/src/oldarch/com/reactnativecommunity/webview/RNCWebViewManager.java b/node_modules/react-native-webview/android/src/oldarch/com/reactnativecommunity/webview/RNCWebViewManager.java
+index 974337f..f26e680 100644
+--- a/node_modules/react-native-webview/android/src/oldarch/com/reactnativecommunity/webview/RNCWebViewManager.java
++++ b/node_modules/react-native-webview/android/src/oldarch/com/reactnativecommunity/webview/RNCWebViewManager.java
+@@ -127,6 +127,16 @@ public class RNCWebViewManager extends ViewGroupManager<RNCWebViewWrapper> {
+         mRNCWebViewManagerImpl.setIncognito(view, value);
+     }
+ 
++    @ReactProp(name = "hapticBackEnabled", defaultBoolean = true)
++    public void setHapticBackEnabled(RNCWebViewWrapper view, boolean enabled) {
++        mRNCWebViewManagerImpl.setHapticBackEnabled(view, enabled);
++    }
++
++    @ReactProp(name = "disabledUserLongClickSelect")
++    public void setDisabledUserLongClickSelect(RNCWebViewWrapper view, boolean disabled) {
++        mRNCWebViewManagerImpl.setDisabledUserLongClickSelect(view, disabled);
++    }
++
+     @ReactProp(name = "injectedJavaScript")
+     public void setInjectedJavaScript(RNCWebViewWrapper view, @Nullable String value) {
+         mRNCWebViewManagerImpl.setInjectedJavaScript(view, value);
+diff --git a/node_modules/react-native-webview/lib/RNCWebViewNativeComponent.d.ts b/node_modules/react-native-webview/lib/RNCWebViewNativeComponent.d.ts
+index 6b789f9..0640d53 100644
+--- a/node_modules/react-native-webview/lib/RNCWebViewNativeComponent.d.ts
++++ b/node_modules/react-native-webview/lib/RNCWebViewNativeComponent.d.ts
+@@ -113,6 +113,8 @@ type WebViewDownloadEvent = Readonly<{
+     downloadUrl: string;
+ }>;
+ export interface NativeProps extends ViewProps {
++    hapticBackEnabled?: WithDefault<boolean, true>;
++    disabledUserLongClickSelect?: WithDefault<boolean, false>;
+     allowFileAccess?: boolean;
+     allowsProtectedMedia?: boolean;
+     allowsFullscreenVideo?: boolean;
+diff --git a/node_modules/react-native-webview/lib/WebViewTypes.d.ts b/node_modules/react-native-webview/lib/WebViewTypes.d.ts
+index f666e81..086fd4a 100644
+--- a/node_modules/react-native-webview/lib/WebViewTypes.d.ts
++++ b/node_modules/react-native-webview/lib/WebViewTypes.d.ts
+@@ -777,6 +777,10 @@ export interface MacOSWebViewProps extends WebViewSharedProps {
+     onContentProcessDidTerminate?: (event: WebViewTerminatedEvent) => void;
+ }
+ export interface AndroidWebViewProps extends WebViewSharedProps {
++    /** 是否启用原生长按振动，默认 true。仅 Android。 */
++    hapticBackEnabled?: boolean;
++    /** 是否消费原生长按事件以禁止内容选择（包含跨域 iframe），默认 false。仅 Android。 */
++    disabledUserLongClickSelect?: boolean;
+     onNavigationStateChange?: (event: WebViewNavigation) => void;
+     onContentSizeChange?: (event: WebViewEvent) => void;
+     /**
+diff --git a/node_modules/react-native-webview/src/RNCWebViewNativeComponent.ts b/node_modules/react-native-webview/src/RNCWebViewNativeComponent.ts
+index ca3af15..9497853 100644
+--- a/node_modules/react-native-webview/src/RNCWebViewNativeComponent.ts
++++ b/node_modules/react-native-webview/src/RNCWebViewNativeComponent.ts
+@@ -132,6 +132,8 @@ type WebViewDownloadEvent = Readonly<{
+ 
+ export interface NativeProps extends ViewProps {
+   // Android only
++  hapticBackEnabled?: WithDefault<boolean, true>;
++  disabledUserLongClickSelect?: WithDefault<boolean, false>;
+   allowFileAccess?: boolean;
+   allowsProtectedMedia?: boolean;
+   allowsFullscreenVideo?: boolean;
+diff --git a/node_modules/react-native-webview/src/WebView.android.tsx b/node_modules/react-native-webview/src/WebView.android.tsx
+index 15e9dee..6e8e446 100644
+--- a/node_modules/react-native-webview/src/WebView.android.tsx
++++ b/node_modules/react-native-webview/src/WebView.android.tsx
+@@ -75,6 +75,8 @@ const WebViewComponent = forwardRef<unknown, AndroidWebViewProps>(
+       setBuiltInZoomControls = true,
+       setDisplayZoomControls = false,
+       nestedScrollEnabled = false,
++      hapticBackEnabled = true,
++      disabledUserLongClickSelect = false,
+       startInLoadingState,
+       onNavigationStateChange,
+       onLoadStart,
+@@ -291,6 +293,8 @@ const WebViewComponent = forwardRef<unknown, AndroidWebViewProps>(
+         setBuiltInZoomControls={setBuiltInZoomControls}
+         setDisplayZoomControls={setDisplayZoomControls}
+         nestedScrollEnabled={nestedScrollEnabled}
++        hapticBackEnabled={hapticBackEnabled}
++        disabledUserLongClickSelect={disabledUserLongClickSelect}
+         injectedJavaScriptObject={JSON.stringify(injectedJavaScriptObject)}
+         {...nativeConfig?.props}
+       />
+diff --git a/node_modules/react-native-webview/src/WebViewTypes.ts b/node_modules/react-native-webview/src/WebViewTypes.ts
+index 4e7247f..c318ab1 100644
+--- a/node_modules/react-native-webview/src/WebViewTypes.ts
++++ b/node_modules/react-native-webview/src/WebViewTypes.ts
+@@ -947,6 +947,10 @@ export interface MacOSWebViewProps extends WebViewSharedProps {
+ }
+ 
+ export interface AndroidWebViewProps extends WebViewSharedProps {
++  /** 是否启用原生长按振动，默认 true。仅 Android。 */
++  hapticBackEnabled?: boolean;
++  /** 是否消费原生长按事件以禁止内容选择（包含跨域 iframe），默认 false。仅 Android。 */
++  disabledUserLongClickSelect?: boolean;
+   onNavigationStateChange?: (event: WebViewNavigation) => void;
+   onContentSizeChange?: (event: WebViewEvent) => void;
+ 

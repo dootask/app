@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BackHandler, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import { router, useLocalSearchParams, useNavigation } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams, useNavigation } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { WebViewNavigation } from 'react-native-webview/lib/WebViewTypes';
 
@@ -90,10 +90,11 @@ export default function WebPage() {
     },
   );
 
-  useEffect(() => {
+  // 只在获得焦点时接管返回键，否则被扫码/预览等原生页覆盖时仍会抢走返回事件
+  useFocusEffect(useCallback(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => handleBackPress(ref.current?.page));
     return () => sub.remove();
-  }, []);
+  }, []));
 
   const onCreateTarget = useCallback((target: string) => {
     const page = ref.current?.page;

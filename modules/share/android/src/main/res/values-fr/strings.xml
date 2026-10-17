@@ -1,0 +1,15 @@
+<resources>
+  <string name="dootask_share_cancelTitle">Annuler</string>
+  <string name="dootask_share_sendTitle">Envoyer à</string>
+  <string name="dootask_share_sendingTitle">Envoi en cours</string>
+  <string name="dootask_share_sendSuccessTitle">Envoi réussi</string>
+  <string name="dootask_share_sendFailTitle">Échec de l\'envoi</string>
+  <string name="dootask_share_unLoginTitle">Veuillez vous connecter et utiliser</string>
+  <string name="dootask_share_emptyShareTitle">Impossible d\'obtenir les données de partage</string>
+  <string name="dootask_share_netWorkErrorTitle">Exception de réseau</string>
+  <string name="dootask_share_folderUnsupportTitle">Le téléchargement de dossier n\'est pas pris en charge pour le moment</string>
+  <string name="dootask_share_allTitle">Tous</string>
+  <string name="dootask_share_successTotal">Le téléchargement du fichier a réussi</string>
+  <string name="dootask_share_failTotal">Le téléchargement du fichier a échoué</string>
+  <string name="dootask_share_searchTitle">Rechercher</string>
+</resources>

@@ -1,0 +1,15 @@
+<resources>
+  <string name="dootask_share_cancelTitle">キャンセルとする</string>
+  <string name="dootask_share_sendTitle">送信先</string>
+  <string name="dootask_share_sendingTitle">送信</string>
+  <string name="dootask_share_sendSuccessTitle">送信に成功しました と表示されます</string>
+  <string name="dootask_share_sendFailTitle">送信失敗</string>
+  <string name="dootask_share_unLoginTitle">ログインして使用してください</string>
+  <string name="dootask_share_emptyShareTitle">シェアデータの取得ができません</string>
+  <string name="dootask_share_netWorkErrorTitle">ネットワーク例外</string>
+  <string name="dootask_share_folderUnsupportTitle">アップロードフォルダは現時点ではサポートされていません</string>
+  <string name="dootask_share_allTitle">All とする</string>
+  <string name="dootask_share_successTotal">ファイルのアップロードに成功しました</string>
+  <string name="dootask_share_failTotal">ファイルのアップロードに失敗しました</string>
+  <string name="dootask_share_searchTitle">検索</string>
+</resources>

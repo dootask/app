@@ -1,0 +1,15 @@
+<resources>
+  <string name="dootask_share_cancelTitle">취소</string>
+  <string name="dootask_share_sendTitle">보내는 사람</string>
+  <string name="dootask_share_sendingTitle">보내는 중</string>
+  <string name="dootask_share_sendSuccessTitle">성공적으로 보냈습니다</string>
+  <string name="dootask_share_sendFailTitle">전송 실패</string>
+  <string name="dootask_share_unLoginTitle">로그인하여 사용하세요</string>
+  <string name="dootask_share_emptyShareTitle">공유 데이터를 가져올 수 없습니다</string>
+  <string name="dootask_share_netWorkErrorTitle">네트워크 예외</string>
+  <string name="dootask_share_folderUnsupportTitle">현재 폴더 업로드가 지원되지 않습니다</string>
+  <string name="dootask_share_allTitle">모두</string>
+  <string name="dootask_share_successTotal">파일 업로드에 성공했습니다</string>
+  <string name="dootask_share_failTotal">파일 업로드 실패</string>
+  <string name="dootask_share_searchTitle">검색</string>
+</resources>

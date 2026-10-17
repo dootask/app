@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { ActivityIndicator, BackHandler, View } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 
 import { BridgeWebView, type BridgeWebViewHandle } from '../bridge/BridgeWebView';
 import { usePageActive } from '../bridge/hooks';
@@ -56,10 +57,11 @@ function ReadyMainPage({ bridgeRef: ref, webLoadedRef, webUrl }: {
     () => ref.current?.page?.invokeWindow('__onPagePause'),
   );
 
-  useEffect(() => {
+  // 只在获得焦点时接管返回键，否则被扫码/预览等原生页覆盖时仍会抢走返回事件
+  useFocusEffect(useCallback(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => handleBackPress(ref.current?.page));
     return () => sub.remove();
-  }, [ref]);
+  }, [ref]));
 
   const onCreateTarget = useCallback((url: string) => {
     ref.current?.page?.invokeWindow('__onCreateTarget', url);
