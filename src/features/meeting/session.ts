@@ -370,7 +370,7 @@ export class MeetingSession {
     if (this.ended) return;
     this.send(meetingEvent('error', this.uid));
     this.finish();
-    if (showAlert && message) Alert.alert(this.strings.meeting, message);
+    if (showAlert && message) Alert.alert(this.strings.meeting, message, [{ text: this.strings.ok }]);
   }
 
   finish() {

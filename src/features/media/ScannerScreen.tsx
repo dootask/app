@@ -40,9 +40,9 @@ export default function ScannerScreen() {
       const results = await scanFromURLAsync(temporary.uri);
       if (request.finished) return;
       if (results[0]) scanned(results[0], 'photo');
-      else Alert.alert('未识别到二维码或条码', '请尝试选择更清晰的图片。');
+      else Alert.alert('未识别到二维码或条码', '请尝试选择更清晰的图片。', [{ text: '确定' }]);
     } catch (error) {
-      if (!request.finished) Alert.alert('无法识别图片', error instanceof Error ? error.message : '请稍后重试。');
+      if (!request.finished) Alert.alert('无法识别图片', error instanceof Error ? error.message : '请稍后重试。', [{ text: '确定' }]);
     } finally {
       try { if (temporary?.exists) temporary.delete(); } catch { /* 临时文件交给系统缓存清理。 */ }
       pickingRef.current = false;

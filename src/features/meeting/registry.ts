@@ -43,7 +43,7 @@ export function startMeeting(page: PageHandle, value: unknown) {
   try { params = parseMeetingParams(value); }
   catch {
     page.invokeWindow('__onMeetingEvent', meetingEvent('error', stringValue(objectValue(value).uuid) || '0'));
-    Alert.alert(strings.meeting, strings.failed);
+    Alert.alert(strings.meeting, strings.failed, [{ text: strings.ok }]);
     return;
   }
   const active = activeMeeting();
@@ -55,7 +55,7 @@ export function startMeeting(page: PageHandle, value: unknown) {
       }
     } else {
       page.invokeWindow('__onMeetingEvent', meetingEvent('error', params.uuid));
-      Alert.alert(strings.meeting, strings.busy);
+      Alert.alert(strings.meeting, strings.busy, [{ text: strings.ok }]);
     }
     return;
   }

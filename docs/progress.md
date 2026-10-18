@@ -75,10 +75,12 @@ AI 无法自动完成的验证集中在这里，详细步骤见 `docs/page-compa
 
 **需真机 / 手动触发**
 - [ ] 真实会议通话（前端会议入口取 token）：多人视频网格、最小化悬浮条、后台语音、Android 保活通知、划掉任务后释放引擎
-- [ ] 分享实际发送（会在测试服务器发消息）、iOS 分享扩展（从其他 App 分享面板触发）
+- [x] Android 分享实际发送：SEND text/plain → ShareActivity 列出会话 → 勾选发送「发送成功」，会话内可见（2026-10-18 模拟器）
+- [ ] iOS 分享扩展（从其他 App 分享面板触发，模拟器需手动点选）
 - [ ] 扫码识别结果回调、getLatestPhoto / uploadPhoto、videoPreview
 - [ ] 长按振动与禁用长按选择、clearAllNotify、快照、goDesktop
-- [ ] 冷启动深链
+- [x] 热深链：双端从首页/日历子路由跳转 /manage/calendar、/manage/messenger 正常（2026-10-18 模拟器）；Android goDesktop 回桌面正常，iOS 空实现同旧壳
+- [ ] 冷启动深链（dev client 冷启动停在开发启动器，需包内 Release 验证）
 
 **包内 Release 模式（依赖 M4 出包）**
 - [ ] 在 GitHub 配置 app-internal Environment 与签名 secrets，手动运行 Expo App Internal workflow
@@ -86,9 +88,9 @@ AI 无法自动完成的验证集中在这里，详细步骤见 `docs/page-compa
 - [ ] 从旧版 eeui 包覆盖升级的缓存迁移（保留登录、设置）
 
 **已知差异 / 二期前复核**
-- [ ] Android getLatestPhoto 使用 DATE_TAKEN，旧壳为 DATE_ADDED，需补原生查询（🟡）
+- [x] Android getLatestPhoto 使用 DATE_TAKEN，旧壳为 DATE_ADDED，需补原生查询（🟡）— 2026-10-18 P2 B05 已改为原生 DATE_ADDED（e3b7eb8）
 - [ ] iOS `voip` 后台模式：二期接 DooPush 时结合 PushKit 复核，否则上架可能被拒
-- [ ] Android 会议错误弹窗按钮为系统默认 “OK”，需本地化
+- [x] Android 会议错误弹窗按钮为系统默认 “OK”，需本地化 — 2026-10-18 会议/扫码提示框显式传按钮（会议按语言 确定/確定/OK）
 - [ ] 二期：DooPush 接入、开启 expo-notifications 远程推送与 aps-environment
 
 ## 记录
