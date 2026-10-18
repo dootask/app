@@ -18,7 +18,12 @@
 **页面级兼容**
 - [x] 聊天页弹出键盘时输入框被遮挡（Android 已修复并验证，见「键盘避让」；iOS 待手动确认）
 - [ ] iOS 聊天页键盘手动确认（模拟器无法自动点击）
-- [ ] 梳理前端其他针对 eeui 原生的页面优化（安全区、状态栏、返回手势等）并逐项核对
+- [x] 梳理前端其他针对 eeui 原生的页面优化：见 `docs/page-compat-audit.md`（58 项，P0/P1/P2 清单与设备验证步骤 V01–V12）
+- [x] P0 K02–K04 键盘事件对齐旧壳：iOS 按 750 宽换算、Android 物理 px；Android 只在显隐切换时上报；只投递首页（Android 已验证 819px@2.625）
+- [x] P0 T01 setScrollEnabled 不再拦截全 document touchmove/wheel，只锁外层；T03 禁选时保留输入控件选区
+- [x] P1 L06 首页恢复时刷新通知权限并清通知栏
+- [ ] P1 B01 getGeolocation（Codex 进行中）、B02 Android 录音权限回调（Codex 进行中）
+- [ ] P0 K06 iOS fullscreen / visualViewport 实测（V04，需手动）；P1 其余项（S 安全区、N 返回/子页、K08、B03、N08）与 P2 见审计清单
 
 **需真机 / 手动触发**
 - [ ] 真实会议通话（前端会议入口取 token）：多人视频网格、最小化悬浮条、后台语音、Android 保活通知、划掉任务后释放引擎

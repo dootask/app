@@ -1,8 +1,9 @@
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
-import { AppState, Appearance, Keyboard, Platform } from 'react-native';
+import { AppState, Appearance, Dimensions, Keyboard, PixelRatio, Platform } from 'react-native';
 import { useIsFocused } from 'expo-router';
 
-import { invokeWindowAll } from './pages';
+import { FIRST_PAGE_NAME } from '../config';
+import { getPage, invokeWindowAll } from './pages';
 import { bridgeStore } from './store';
 
 export function useThemeName() {
@@ -59,11 +60,20 @@ export function useBridgeRuntime() {
 
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
     const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    // 前端按旧壳单位比较阈值（keyboardHeight > 120）：iOS 按屏宽 750 换算并截断，Android 为物理 px（RN 已扣除导航栏）
+    const legacyHeight = (height: number) => Platform.OS === 'ios'
+      ? Math.trunc(height * 750 / Dimensions.get('screen').width)
+      : PixelRatio.getPixelSizeForLayoutSize(height);
+    let lastVisible = false;
     const notifyKeyboard = (visible: boolean, height: number) => {
       bridgeStore.setKeyboard({ visible, height });
-      invokeWindowAll('__onKeyboardStatus', {
+      // 旧 Android 只在显隐切换时上报；iOS 每次 Will 通知都上报（候选栏等高度变化）
+      if (Platform.OS === 'android' && visible === lastVisible) return;
+      lastVisible = visible;
+      // 旧壳只有首页 index.vue 转发该事件，子页（web.vue）不转发
+      getPage(FIRST_PAGE_NAME)?.invokeWindow('__onKeyboardStatus', {
         keyboardType: visible ? 'show' : 'hide',
-        keyboardHeight: height,
+        keyboardHeight: visible ? legacyHeight(height) : 0,
       });
     };
     const showSub = Keyboard.addListener(showEvent, (e) => notifyKeyboard(true, Math.round(e.endCoordinates.height)));

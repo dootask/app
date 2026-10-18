@@ -8,6 +8,7 @@ import { handleBackPress } from '../bridge/navigation';
 import { SnapshotOverlay, usePageWebViewOverrides } from '../bridge/modules/webview/overrides';
 import type { PageInfo } from '../bridge/protocol';
 import { FIRST_PAGE_NAME } from '../config';
+import { clearAllNotifications, refreshNotificationPermission } from '../features/notifications';
 import { ensureAppUniqueId, KeyboardInset, migrateLegacyCaches, useDeepLinkHandler, useLocalWebReady } from '../native';
 
 /**
@@ -51,8 +52,12 @@ function ReadyMainPage({ bridgeRef: ref, webLoadedRef, webUrl }: {
 
   usePageActive(
     () => {
-      ref.current?.page?.invokeWindow('__onPageResume', resumeNum.current);
+      const page = ref.current?.page;
+      page?.invokeWindow('__onPageResume', resumeNum.current);
       resumeNum.current++;
+      // 对齐旧 index.vue pageResume：从系统设置返回后刷新通知权限提示，并清空通知栏
+      if (page) void refreshNotificationPermission(page);
+      clearAllNotifications().catch((error) => console.warn('[index] 清除通知失败', error));
     },
     () => ref.current?.page?.invokeWindow('__onPagePause'),
   );

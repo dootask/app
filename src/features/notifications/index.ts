@@ -7,8 +7,10 @@ import { setBadgeCountAsync } from 'expo-notifications/build/setBadgeCountAsync'
 import { Platform } from 'react-native';
 
 import { registerMessage, type MessageHandler } from '../../bridge/dispatcher';
+import type { PageHandle } from '../../bridge/pages';
 
-registerMessage('getNotificationPermission', async (page) => {
+/** 查询通知权限并回调 __onNotificationPermissionStatus；首页每次恢复也会调用（对齐旧 index.vue pageResume） */
+export async function refreshNotificationPermission(page: PageHandle) {
   let enabled = false;
   try {
     const permissions = await getPermissionsAsync();
@@ -20,7 +22,9 @@ registerMessage('getNotificationPermission', async (page) => {
     console.warn('[bridge/notifications] 查询通知权限失败', error);
   }
   page.invokeWindow('__onNotificationPermissionStatus', enabled);
-});
+}
+
+registerMessage('getNotificationPermission', refreshNotificationPermission);
 
 const setBadge: MessageHandler = async (page, payload) => {
   // 沿用旧 parseInt(bdage) || 0，限制到原生 Android Int 可表示的非负范围。
@@ -52,7 +56,9 @@ const setBadge: MessageHandler = async (page, payload) => {
 registerMessage('setBdageNotify', setBadge);
 registerMessage('setBadgeNum', setBadge);
 
-registerMessage('clearAllNotify', async () => {
-  // 保留旧 iOS 取消待发送通知的行为，并清理通知中心中的通知。
+/** 保留旧 iOS 取消待发送通知的行为，并清理通知中心中的通知；首页每次恢复也会调用。 */
+export async function clearAllNotifications() {
   await Promise.all([cancelAllScheduledNotificationsAsync(), dismissAllNotificationsAsync()]);
-});
+}
+
+registerMessage('clearAllNotify', clearAllNotifications);
