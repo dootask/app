@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BackHandler, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import { router, useFocusEffect, useLocalSearchParams, useNavigation } from 'expo-router';
+import { router, Stack, useFocusEffect, useIsFocused, useLocalSearchParams, useNavigation } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { WebViewNavigation } from 'react-native-webview/lib/WebViewTypes';
 
@@ -20,6 +20,17 @@ import { SnapshotOverlay, usePageWebViewOverrides } from '../bridge/modules/webv
 import { canOpenInBrowser, isPageTitle, useWebPageLabels } from '../bridge/modules/webview/pageOptions';
 import { createTarget, getPageWebViewState, patchWebView, setPageUrl } from '../bridge/modules/webview/state';
 import { KeyboardInset } from '../native/KeyboardInset';
+import { SwipeBack } from '../native/SwipeBack';
+
+function pageBoolean(value: unknown, fallback: boolean): boolean {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return value !== 0;
+  if (typeof value === 'string') {
+    if (['true', '1', 'yes'].includes(value.toLowerCase().trim())) return true;
+    if (['false', '0', 'no'].includes(value.toLowerCase().trim())) return false;
+  }
+  return fallback;
+}
 
 /**
  * 二级页面（对应 eeui pages/web.vue，前端以 openPage({url:'web.js', params:{url,...}}) 打开）
@@ -27,8 +38,10 @@ import { KeyboardInset } from '../native/KeyboardInset';
 export default function WebPage() {
   const { pageName } = useLocalSearchParams<{ pageName: string }>();
   const navigation = useNavigation();
+  const isFocused = useIsFocused();
   const ref = useRef<BridgeWebViewHandle>(null);
   const activeRef = useRef(false);
+  const closingRef = useRef(false);
   const { props: webViewProps, onPage, captureRef, values: webViewValues, url: overrideUrl } = usePageWebViewOverrides(pageName, ref);
   const theme = useAppTheme();
   const [backText, forwardText, browserText, refreshText, defaultTitle] = useWebPageLabels();
@@ -38,6 +51,9 @@ export default function WebPage() {
 
   const request = getOpenRequest(pageName);
   const params = useMemo(() => request?.options.params ?? {}, [request]);
+  // 这是 openPage 的顶层原生选项，不属于传给网页的 params / pageData。
+  const swipeBack = pageBoolean(request?.options.swipeBack, true);
+  const swipeFullBack = pageBoolean(request?.options.swipeFullBack, false);
   const url = String(params.url ?? request?.options.url ?? 'about:blank');
   const data = webViewValues.pageData;
   const options = { ...params, ...data };
@@ -49,6 +65,17 @@ export default function WebPage() {
   const actionUrl = String(data.url ?? url);
   const title = String(data.title ?? (webTitle || request?.options.pageTitle || defaultTitle));
   const moreShow = !!data.moreShow;
+
+  const closePage = useCallback(() => {
+    if (closingRef.current || !navigation.canGoBack()) return;
+    closingRef.current = true;
+    navigation.goBack();
+  }, [navigation]);
+
+  const onSwipeClose = useCallback(() => {
+    // 只约束当前手势；桥 closePage(pageName) 仍可按名称关闭被覆盖的页面。
+    if (navigation.isFocused()) closePage();
+  }, [navigation, closePage]);
 
   const info = useMemo<PageInfo>(
     () => ({
@@ -65,9 +92,7 @@ export default function WebPage() {
       router.back();
       return;
     }
-    setPageCloser(pageName, () => {
-      if (navigation.canGoBack()) navigation.goBack();
-    });
+    setPageCloser(pageName, closePage);
     emitPageStatus(pageName, 'create');
     emitPageStatus(pageName, 'start');
     return () => {
@@ -138,7 +163,7 @@ export default function WebPage() {
 
   if (!request) return <View style={styles.container} />;
 
-  return (
+  const content = (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.backgroundColor }]} edges={['top', 'bottom']}>
       <View style={styles.navbar}>
         <Pressable
@@ -146,7 +171,7 @@ export default function WebPage() {
           accessibilityLabel={backText}
           hitSlop={4}
           style={styles.navButton}
-          onPress={() => { if (navigation.canGoBack()) navigation.goBack(); }}
+          onPress={closePage}
         >
           <Text style={[styles.backIcon, { color: theme.navColor }]}>‹</Text>
         </Pressable>
@@ -193,6 +218,19 @@ export default function WebPage() {
         )}
       </KeyboardInset>
     </SafeAreaView>
+  );
+
+  return (
+    <>
+      <Stack.Screen options={Platform.OS === 'ios' ? {
+        gestureEnabled: swipeBack,
+        // iOS 26 默认开启全屏返回，必须显式保留旧壳的边缘默认值。
+        fullScreenGestureEnabled: swipeBack && swipeFullBack,
+      } : {}} />
+      <SwipeBack enabled={swipeBack && isFocused} backgroundColor={theme.backgroundColor} onClose={onSwipeClose}>
+        {content}
+      </SwipeBack>
+    </>
   );
 }
 

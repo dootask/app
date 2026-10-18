@@ -1,7 +1,8 @@
-import { Alert, Keyboard } from 'react-native';
+import { Alert, Keyboard, Platform } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 
+import { getLegacyStoreModule } from '../../../../modules/legacy-store';
 import { registerModule } from '../../dispatcher';
 import { getDeviceInfo, getSafeAreaInsets } from './device';
 import { openWeb } from './openWeb';
@@ -42,6 +43,10 @@ registerModule('eeui', {
   },
 
   keyboardHide(page) {
+    // 旧 Android 只 hideSoftInput、不移除焦点（弹框取消后光标/选区原样保留）；
+    // RN 的 Keyboard.dismiss 只作用于 RN TextInput，对 WebView 内输入框无效，故走原生收起
+    if (Platform.OS === 'android') return getLegacyStoreModule().hideSoftInput();
+    // 旧 iOS endEditing 会让输入框失焦
     page.inject('(function(){var el=document.activeElement;if(el&&typeof el.blur==="function")el.blur();})();true;');
     Keyboard.dismiss();
   },

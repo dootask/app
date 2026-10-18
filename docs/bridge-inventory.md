@@ -40,7 +40,7 @@
 
 | 方法 | 参数 → 回调 | 说明 | 状态 |
 |---|---|---|---|
-| openPage(object, cb) | `{pageName?, pageType:'app', url:'web.js', params:{url, titleFixed, urlFixed, showProgress, allowAccess, hiddenDone}, softInputMode, pageTitle}` → `{pageName, status}` 多次回调 | 状态顺序：ready → create → start → resume → pause → stop → destroy | ✅ C（二级页 UI 见第 6 节） |
+| openPage(object, cb) | `{pageName?, pageType:'app', url:'web.js', params:{url, titleFixed, urlFixed, showProgress, allowAccess, hiddenDone}, softInputMode, pageTitle, swipeBack?, swipeFullBack?}` → `{pageName, status}` 多次回调 | 状态顺序：ready → create → start → resume → pause → stop → destroy；顶层手势选项默认 true / false，平台行为见第 7 节 | ✅ C；✅ N02/N03 手势实现（待设备验收） |
 | closePage(pageName?) | — | 不传参数时关闭调用者所在页面 | ✅ C |
 | setPageBackPressed({pageName}, cb) | 按下 Android 返回键时调用 cb（可多次触发） | Back.vue 用它拦截首页返回 | ✅ C |
 | goDesktop() | — | Android 退到桌面（moveTaskToBack），iOS 忽略 | ✅ X1（`src/native/register.ts`，首页导入 native 后注册，待实机验证） |
@@ -120,6 +120,15 @@
   - createTarget 只允许 `/^(?:https?|mailto|tel|callto):/i`。
 
 `urlFixed` 固定菜单的浏览器打开 / 刷新 URL，不阻止网页内导航；`titleFixed` 阻止网页 title 覆盖导航标题。快照、覆盖属性、菜单数据均保存在各自的 `PageHandle.state` 中。
+
+- ✅ N02 / N03 子页滑动返回（实现完成，待 V07 设备验收）：
+  - `openPage` 顶层 `swipeBack` / `swipeFullBack` 经桥协议、core 模块和 `OpenRequest.options` 原样透传到 `web.tsx`，不从网页的 `params` / `pageData` 读取；布尔值、数字及 `"true"` / `"false"`、`"1"` / `"0"` 字符串均可识别。
+  - 旧双端子页默认 `swipeBack=true`、`swipeFullBack=false`，首页不启用原生返回；Android 旧 `PageBean.java:56,86` / `PageActivity.java:858` 与 iOS 旧 `eeuiNewPageManager.m:94` / `eeuiViewController.m:71` 为依据。旧 iOS 默认距左侧 ≤35pt，显式 `swipeFullBack=true` 时取消距离限制。
+  - iOS 在 `web.tsx` 的 `Stack.Screen` 显式设置 `gestureEnabled=swipeBack`、`fullScreenGestureEnabled=swipeBack && swipeFullBack`，避免 iOS 26 默认全屏返回改变旧默认行为；默认使用系统原生边缘识别范围（不保证精确 35pt），不启用 WebView history 手势。
+  - Android `src/native/SwipeBack.tsx` 使用 Gesture Handler + Reanimated：仅左侧 24dp 起手，右移 >12dp 后激活；激活前竖移超出 ±12dp、左移超出 8dp 或多指触摸放弃。页面在 UI 线程跟手平移，松手右移 ≥页面宽度 30% 且未向左甩，或本次右移 ≥32dp 且右甩 ≥800dp/s（横向速度大于纵向速度）时关闭，否则弹簧回到原位。30% 沿用旧 BGA 阈值；起手带和速度 / 最小位移门槛用于减少滚动、点击和地图拖动误触。
+  - Android 即使传 `swipeFullBack=true` 也保持边缘限定，以保留 WebView 内横向滚动 / 地图操作；`swipeBack=false` 关闭应用内手势。按钮、桥关闭和应用内手势复用同一关闭函数，pause / stop / destroy 继续走既有路由生命周期，取消手势不发送关闭回调；失焦、卸载及重复关闭有防护。首页未接入此组件。
+  - `npx expo install react-native-gesture-handler` 已将此前间接安装的 3.4.0 改为 SDK 58 兼容的直接依赖 `~3.3.0`；沿用已有 Reanimated。子页组件内提供 `GestureHandlerRootView`，无需集成方修改 `_layout.tsx`；构建机需安装依赖并重新构建 dev client / 原生包。
+  - 系统手势导航模式下，Android 系统可能优先消费同一左边缘触摸；组件不申请系统手势排除区，收到取消时回弹，不追加一次应用内返回。`swipeBack=false` 不禁用系统返回。需同时验证三键导航下的应用内返回和系统手势模式，不能用系统返回代替 N02 验收。
 
 ## 8. 本地 Web 服务与资源
 

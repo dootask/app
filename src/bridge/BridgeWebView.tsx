@@ -174,7 +174,8 @@ export const BridgeWebView = forwardRef<BridgeWebViewHandle, BridgeWebViewProps>
       domStorageEnabled
       allowFileAccess
       allowsInlineMediaPlayback
-      mediaPlaybackRequiresUserAction={false}
+      // 对齐 eeui：Android 允许免手势播放；iOS 旧壳沿用 WK 默认（需用户手势），避免改变声音启动时机
+      mediaPlaybackRequiresUserAction={Platform.OS === 'ios'}
       mediaCapturePermissionGrantType="grant"
       geolocationEnabled
       setSupportMultipleWindows
@@ -183,6 +184,8 @@ export const BridgeWebView = forwardRef<BridgeWebViewHandle, BridgeWebViewProps>
       bounces={false}
       overScrollMode="never"
       textZoom={100}
+      // 对齐 eeui ExtendWebView MIXED_CONTENT_ALWAYS_ALLOW：HTTPS 外站/微应用里的 HTTP 子资源不被拦截
+      mixedContentMode="always"
       pullToRefreshEnabled={false}
       webviewDebuggingEnabled={__DEV__}
       sharedCookiesEnabled

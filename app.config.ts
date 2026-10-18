@@ -38,7 +38,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   slug: 'dootask',
   scheme: 'dootask',
   version,
-  orientation: 'default',
+  // Android 先以竖屏启动，再由运行时策略为平板解锁，避免手机横屏启动后闪转。
+  orientation: 'portrait',
   icon: './assets/icon.png',
   userInterfaceStyle: 'automatic',
   backgroundColor: '#ffffff',
@@ -142,6 +143,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ],
     './plugins/with-share',
     './plugins/with-meeting',
+    'expo-screen-orientation',
+    './plugins/with-device-orientation',
   ],
   experiments: {
     typedRoutes: true,

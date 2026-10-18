@@ -26,7 +26,16 @@
 - [x] P1 B02 Android 录音权限结果回调 `__onPermissionRequest('recordAudio', bool)`（react-native-webview 补丁；普通拒绝也回 false，旧壳不回调）：双端编译通过
 - [ ] 真机验证：地图页三种地图定位、拒绝/关闭定位/超时分支、签到选点（V09）；首次/永久拒绝录音后重试（V12）
 - [x] P0 K06 iOS 聊天弹窗键盘遮挡输入框：react-native-webview 在 scrollEnabled=false 时把 scrollView.bounds 钉回原位、且注入了 html/body overflow:hidden，挡住 WebKit 弹键盘时的上推；补丁去掉钉位、iOS 不再注入 overflow（对齐 eeui 只关 scrollEnabled）。用户 iOS 模拟器手动验证通过
-- [ ] P1 其余项（S 安全区、N 返回/子页、K08、B03、N08）与 P2 见审计清单
+- [x] N06 Android `mixedContentMode="always"`（对齐 MIXED_CONTENT_ALWAYS_ALLOW）
+- [x] B03 免手势播放按旧壳：Android 允许、iOS 需用户手势（WK 默认）
+- [x] K08 keyboardHide：Android 原生 hideSoftInput 不移除焦点；iOS 保持 blur + dismiss
+- [x] N08 核对：setVariate 处理器同步写 store 并经同一注入通道先于 pause 回调送达首页，顺序有保证，无需改动（待 V09 实测）
+- [ ] K08/B03 真机对照（V11 弹框取消后光标/选区、V12 媒体播放）
+- [x] S07 方向：手机锁竖屏（iPhone 仅正向竖屏）、平板全方向（Android 按 DeviceType.TABLET 判断，与旧壳 ≥7 英寸略有差异）
+- [x] N02/N03 子页边缘返回：iOS 原生 Stack 手势（swipeBack/swipeFullBack），Android 左缘 24dp 自绘手势（30% 宽度或快速右甩关闭）；模拟器三键导航下已验证回弹/关闭，手势导航下由系统返回接管
+- [x] K08 模拟器验证：Android 键盘收起且壳不 blur；聊天框失焦来自前端 ChatInput 监听 keyboardShow 主动 blur，与旧壳一致
+- [ ] S07/N02 真机：Android 平板旋转与分屏、iOS 边缘/全屏返回手感、Android 滑动关闭时的转场衔接
+- [ ] P1 其余项（S 安全区等需真机）与 P2 见审计清单
 
 **需真机 / 手动触发**
 - [ ] 真实会议通话（前端会议入口取 token）：多人视频网格、最小化悬浮条、后台语音、Android 保活通知、划掉任务后释放引擎
