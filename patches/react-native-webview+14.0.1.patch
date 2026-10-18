@@ -263,6 +263,25 @@ index 974337f..b40bdf0 100644
      @ReactProp(name = "injectedJavaScript")
      public void setInjectedJavaScript(RNCWebViewWrapper view, @Nullable String value) {
          mRNCWebViewManagerImpl.setInjectedJavaScript(view, value);
+diff --git a/node_modules/react-native-webview/apple/RNCWebViewImpl.m b/node_modules/react-native-webview/apple/RNCWebViewImpl.m
+index 3890426..990c275 100644
+--- a/node_modules/react-native-webview/apple/RNCWebViewImpl.m
++++ b/node_modules/react-native-webview/apple/RNCWebViewImpl.m
+@@ -1060,11 +1060,9 @@ RCTAutoInsetsProtocol>
+ // UIScrollViewDelegate method
+ - (void)scrollViewDidScroll:(UIScrollView *)scrollView
+ {
+-  // Don't allow scrolling the scrollView.
+-  if (!_scrollEnabled) {
+-    scrollView.bounds = _webView.bounds;
+-  }
+-  else if (_onScroll != nil) {
++  // DooTask：不再把 bounds 钉回原位。eeui 只关 scrollEnabled（禁止手势滚动），
++  // WebKit 弹键盘时仍需以编程方式滚动来露出聚焦的输入框，钉住会导致输入框被键盘遮挡。
++  if (_scrollEnabled && _onScroll != nil) {
+     NSDictionary *event = @{
+       @"contentOffset": @{
+         @"x": @(scrollView.contentOffset.x),
 diff --git a/node_modules/react-native-webview/lib/RNCWebViewNativeComponent.d.ts b/node_modules/react-native-webview/lib/RNCWebViewNativeComponent.d.ts
 index 6b789f9..0640d53 100644
 --- a/node_modules/react-native-webview/lib/RNCWebViewNativeComponent.d.ts

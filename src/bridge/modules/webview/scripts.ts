@@ -2,7 +2,7 @@ import type { WebViewOverrideValues } from './state';
 
 /**
  * 只增删自己的样式，不覆盖网页已有样式；重载后由 injectedJavaScript / onLoadEnd 重放。
- * setScrollEnabled 对齐旧壳只锁外层滚动（原生 scrollEnabled + html/body overflow），不拦截 touchmove，否则弹层内部列表也滑不动。
+ * setScrollEnabled 对齐旧壳只锁外层滚动（原生 scrollEnabled，Android 另加 html/body overflow），不拦截 touchmove，否则弹层内部列表也滑不动。
  */
 export function webViewPreferencesScript(values: Pick<WebViewOverrideValues, 'scrollEnabled' | 'disabledUserLongClickSelect'>, android: boolean) {
   return `(function(){
@@ -23,7 +23,8 @@ export function webViewPreferencesScript(values: Pick<WebViewOverrideValues, 'sc
       if(!style){style=document.createElement('style');style.id=id;(document.head||document.documentElement).appendChild(style);}
       // 输入控件保留选区，否则键盘弹出后无法长按移动光标/选词
       style.textContent=(prefs.disabledSelection?'*{-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important;}input,textarea,[contenteditable],[contenteditable] *{-webkit-user-select:text!important;user-select:text!important;}':'')+
-        (!prefs.scrollEnabled?'html,body{overflow:hidden!important;overscroll-behavior:none!important;}':'');
+        // iOS 只靠原生 scrollEnabled（同 eeui）；overflow:hidden 会让 WebKit 弹键盘时无法上推露出输入框
+        (!prefs.scrollEnabled&&${JSON.stringify(android)}?'html,body{overflow:hidden!important;overscroll-behavior:none!important;}':'');
     }
     if(document.documentElement)apply();else document.addEventListener('DOMContentLoaded',apply,{once:true});
   })();true;`;

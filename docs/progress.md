@@ -25,7 +25,8 @@
 - [x] P1 B01 getGeolocation（expo-location，仅前台权限，≤50m 精度，20s 超时必回调）：双端模拟器授权后均返回 success + 坐标
 - [x] P1 B02 Android 录音权限结果回调 `__onPermissionRequest('recordAudio', bool)`（react-native-webview 补丁；普通拒绝也回 false，旧壳不回调）：双端编译通过
 - [ ] 真机验证：地图页三种地图定位、拒绝/关闭定位/超时分支、签到选点（V09）；首次/永久拒绝录音后重试（V12）
-- [ ] P0 K06 iOS fullscreen / visualViewport 实测（V04，需手动）；P1 其余项（S 安全区、N 返回/子页、K08、B03、N08）与 P2 见审计清单
+- [x] P0 K06 iOS 聊天弹窗键盘遮挡输入框：react-native-webview 在 scrollEnabled=false 时把 scrollView.bounds 钉回原位、且注入了 html/body overflow:hidden，挡住 WebKit 弹键盘时的上推；补丁去掉钉位、iOS 不再注入 overflow（对齐 eeui 只关 scrollEnabled）。用户 iOS 模拟器手动验证通过
+- [ ] P1 其余项（S 安全区、N 返回/子页、K08、B03、N08）与 P2 见审计清单
 
 **需真机 / 手动触发**
 - [ ] 真实会议通话（前端会议入口取 token）：多人视频网格、最小化悬浮条、后台语音、Android 保活通知、划掉任务后释放引擎
