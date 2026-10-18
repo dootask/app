@@ -35,7 +35,7 @@ AI 无法自动完成的验证集中在这里，详细步骤见 `docs/page-compa
 - [ ] Android 先拍一张新照片、再导入一张旧照片，「最近照片」推荐仍是刚拍的（按入库时间，B05，V12）
 - [ ] 地图页（百度/高德/腾讯）定位：允许、拒绝、关闭定位、超时；签到选点后立即关闭能取到位置，快速重复 5 次（B01/N08，V09）
 - [ ] 安全区与状态栏/导航栏（S02–S06）：刘海屏、横屏平板、深浅色切换（V06/V11）
-- [ ] 冷/热深链、主题切换、包内 Release 首启（L05/L07/A05，V01/V11）
+- [ ] 冷/热深链、主题切换、包内 Release 首启（L05/L07/A05，V01/V11；iOS 模拟器 Release 手动步骤见「包内 Release 模式」）
 - [ ] 以及下方「需真机 / 手动触发」「包内 Release 模式」各项
 
 ## 待办清单（集中跟踪）
@@ -80,11 +80,15 @@ AI 无法自动完成的验证集中在这里，详细步骤见 `docs/page-compa
 - [ ] 扫码识别结果回调、getLatestPhoto / uploadPhoto、videoPreview
 - [ ] 长按振动与禁用长按选择、clearAllNotify、快照、goDesktop
 - [x] 热深链：双端从首页/日历子路由跳转 /manage/calendar、/manage/messenger 正常（2026-10-18 模拟器）；Android goDesktop 回桌面正常，iOS 空实现同旧壳
-- [ ] 冷启动深链（dev client 冷启动停在开发启动器，需包内 Release 验证）
+- [x] 冷启动深链：Android 包内 Release 强杀后 `dootask:///manage/messenger` 直达消息页（2026-10-18 模拟器）；iOS Release 强杀后 openurl 冷启动，路由直达 /manage/messenger（2026-10-18 模拟器）
 
 **包内 Release 模式（依赖 M4 出包）**
 - [ ] 在 GitHub 配置 app-internal Environment 与签名 secrets，手动运行 Expo App Internal workflow
-- [ ] 本地 Web 服务（localhost:22223）、首次服务器设置、hash 路由、离线资源、后台恢复
+- [x] Android 包内 Release（2026-10-18 模拟器，debug 签名）：本地 Web 服务首启 → 隐私协议 → 「使用 SSO 登录」填服务器 → 登录 → 仪表盘；冷启动深链、后台恢复（状态保留）正常
+- [x] iOS 包内 Release（2026-10-18 模拟器）：修复 NWListener 同时指定 requiredLocalEndpoint 与 `on:` 端口导致「cannot override」、监听永远起不来（一直转圈）的问题；修复后监听 127.0.0.1:22223，首启出现隐私协议
+- [ ] iOS Release 手动验收（模拟器无法自动点击）：同意隐私 → 「使用 SSO 登录」填服务器 → 登录 → 强杀后 `xcrun simctl openurl <设备> dootask:///manage/messenger` 冷启动 → 切后台再回来
+- [ ] Android Release 后台恢复时偶现消息页搜索框自动获得焦点、弹出键盘（仅出现一次，复测未复现，留意）
+- [ ] 本地 Web 服务启动失败时 `useLocalWebReady` 只 setUrl(null)，界面永远停在加载圈，无报错/重试（体验待补）
 - [ ] 从旧版 eeui 包覆盖升级的缓存迁移（保留登录、设置）
 
 **已知差异 / 二期前复核**
@@ -237,3 +241,9 @@ AI 无法自动完成的验证集中在这里，详细步骤见 `docs/page-compa
 - 修复：新增 `src/native/KeyboardInset.tsx`（react-native-keyboard-controller 的 `KeyboardAvoidingView`，padding 模式 + `automaticOffset`），根布局挂 `KeyboardProvider`；主页面与子页 WebView 外层包裹。主页面传 `edgeToEdge`，少抬一个底部安全区，让前端 `--navigation-bar-height` 占位藏在键盘后面（与 eeui 上报 `keyboardHeight = IME - safeAreaBottom` 一致），消除输入框与键盘间的空隙。
 - iOS 保持 WKWebView 原生行为（eeui 同样不改尺寸），主页面补 `hideKeyboardAccessoryView` 对齐 eeui `hiddenDone`。
 - ✅ Android 模拟器验证：聊天页点输入框后输入框紧贴键盘上方、可正常输入，收起键盘后布局恢复。
+
+## 包内 Release 构建（构建机）
+
+- `RELEASE=1 scripts/pack.sh /tmp/dootask-app-rel.tgz` 打包时排除 `.env.local`（否则包内仍指向开发服务器）；构建机 `RELEASE=1 scripts/mac-build.sh <ios|android|all> <tgz>` 分别传 `--configuration Release` / `--variant release`。前置：主仓库 `./cmd appexpo build` 同步 `assets/web/`。
+- mac-build.sh 必须以文件路径执行（拒绝 stdin），清理前校验当前目录是 App 根目录。
+- 测试服务端为 2222 端口地址；2221 是 Metro 打包服务，填入会让服务器校验一直卡在加载中。

@@ -60,7 +60,8 @@ private final class LocalWebServer {
         let parameters = NWParameters.tcp
         parameters.allowLocalEndpointReuse = true
         parameters.requiredLocalEndpoint = .hostPort(host: "127.0.0.1", port: networkPort)
-        let candidate = try NWListener(using: parameters, on: networkPort)
+        // 端口已由 requiredLocalEndpoint 指定；再传 on: 会报 "cannot override" 导致监听永远起不来
+        let candidate = try NWListener(using: parameters)
         self.listener = candidate
         self.port = port
         self.pending = [promise]
