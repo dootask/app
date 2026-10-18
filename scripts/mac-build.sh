@@ -2,6 +2,7 @@
 # Mac 构建机上执行：解包 → 安装依赖 → prebuild → 编译安装到模拟器
 # 用法：scripts/mac-build.sh <ios|android|all> [tgz路径]
 # RELEASE=1 时编译包内 Release（需先 ./cmd appexpo build 且打包时排除 .env.local）
+# Android Release 正式签名：ANDROID_KEYSTORE_PATH / ANDROID_KEYSTORE_PASSWORD / ANDROID_KEY_ALIAS / ANDROID_KEY_PASSWORD
 set -euo pipefail
 platform="${1:-all}"
 tgz="${2:-}"
@@ -16,8 +17,8 @@ if [[ -n "$tgz" ]]; then
   tar -xzf "$tgz"
 fi
 npm install --no-audit --no-fund
-ios_extra=(); android_extra=()
-if [[ -n "${RELEASE:-}" ]]; then ios_extra=(--configuration Release); android_extra=(--variant release); fi
+ios_extra=()
+if [[ -n "${RELEASE:-}" ]]; then ios_extra=(--configuration Release); fi
 if [[ "$platform" == "ios" || "$platform" == "all" ]]; then
   npx expo prebuild --platform ios --clean --no-install
   (cd ios && pod install)
@@ -25,5 +26,14 @@ if [[ "$platform" == "ios" || "$platform" == "all" ]]; then
 fi
 if [[ "$platform" == "android" || "$platform" == "all" ]]; then
   npx expo prebuild --platform android --clean --no-install
-  npx expo run:android --no-bundler ${android_extra[@]+"${android_extra[@]}"} ${ANDROID_DEVICE:+--device "$ANDROID_DEVICE"}
+  if [[ -n "${RELEASE:-}" ]]; then
+    # 签名经 init script 注入（ANDROID_KEYSTORE_PATH 等未设置时退化 debug 签名）；安装目标设备由 ANDROID_SERIAL 指定
+    (cd android && ./gradlew :app:assembleRelease --init-script ../scripts/android-signing.gradle)
+    if ! adb install -r android/app/build/outputs/apk/release/app-release.apk; then
+      echo "安装失败：若为签名不一致（INSTALL_FAILED_UPDATE_INCOMPATIBLE），需先手动卸载设备上的旧包" >&2; exit 1
+    fi
+    adb shell am start -n com.dootask.task/.MainActivity
+  else
+    npx expo run:android --no-bundler ${ANDROID_DEVICE:+--device "$ANDROID_DEVICE"}
+  fi
 fi

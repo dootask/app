@@ -83,13 +83,22 @@ AI 无法自动完成的验证集中在这里，详细步骤见 `docs/page-compa
 - [x] 冷启动深链：Android 包内 Release 强杀后 `dootask:///manage/messenger` 直达消息页（2026-10-18 模拟器）；iOS Release 强杀后 openurl 冷启动，路由直达 /manage/messenger（2026-10-18 模拟器）
 
 **包内 Release 模式（依赖 M4 出包）**
-- [ ] 在 GitHub 配置 app-internal Environment 与签名 secrets，手动运行 Expo App Internal workflow
+- [ ] （可选）在 GitHub 配置 app-internal Environment 与签名 secrets；当前改为在构建机（Mac mini）本地出包
 - [x] Android 包内 Release（2026-10-18 模拟器，debug 签名）：本地 Web 服务首启 → 隐私协议 → 「使用 SSO 登录」填服务器 → 登录 → 仪表盘；冷启动深链、后台恢复（状态保留）正常
 - [x] iOS 包内 Release（2026-10-18 模拟器）：修复 NWListener 同时指定 requiredLocalEndpoint 与 `on:` 端口导致「cannot override」、监听永远起不来（一直转圈）的问题；修复后监听 127.0.0.1:22223，首启出现隐私协议
 - [x] iOS Release 手动验收（2026-10-18 用户在模拟器完成）：同意隐私 → 「使用 SSO 登录」填服务器 → 登录 → 强杀后 `xcrun simctl openurl <设备> dootask:///manage/messenger` 冷启动 → 切后台再回来
 - [ ] Android Release 后台恢复时偶现消息页搜索框自动获得焦点、弹出键盘（仅出现一次，复测未复现，留意）
 - [ ] 本地 Web 服务启动失败时 `useLocalWebReady` 只 setUrl(null)，界面永远停在加载圈，无报错/重试（体验待补）
-- [ ] 从旧版 eeui 包覆盖升级的缓存迁移（保留登录、设置）
+- [x] 从旧版 eeui 包覆盖升级（2026-10-18 模拟器）：先装线上 v1.9.66 eeui 包并登录，再覆盖安装新壳正式签名 Release（1.9.66/245），直接进入仪表盘，登录与服务器保留，不再弹隐私协议
+- [x] Android 正式签名：沿用旧 eeui keystore（不入库，构建机经环境变量注入），证书 SHA-256 与线上 v1.9.66 包一致，可覆盖升级
+- [ ] 真机覆盖升级复测（iOS 需同一 Bundle ID 自动签名包覆盖 App Store 版）
+
+**Android 迁移注意**
+- 版本号优先读本仓库 version.json：构建机主仓库 package.json 可能是旧版本，读它会导致 versionCode 低于已装版本（INSTALL_FAILED_VERSION_DOWNGRADE）
+- 启动入口：旧版为 `.WelcomeActivity`，新壳用同名 activity-alias（`plugins/with-legacy-launcher.js`）指向 MainActivity，避免桌面快捷方式因组件名变化失效
+- 体积：原生库未压缩时 APK 约 424MB；开启 useLegacyPackaging 后 224MB；再剔除 Agora 未使用的扩展库（美颜/虚拟背景/空间音频/屏幕共享等，保留 AI 降噪、回声消除、视频编码）后 178MB（旧版 147MB，差额主要是 Agora 4.6 与 RN/Hermes 原生库）
+- [ ] 剔除 Agora 扩展后需真机实测一次音视频会议（Agora 文档列为可删，模拟器启动无 UnsatisfiedLinkError）
+- minSdk 由旧版 21 升至 24（Expo SDK 58 要求），Android 5/6 设备无法安装新版
 
 **已知差异 / 二期前复核**
 - [x] Android getLatestPhoto 使用 DATE_TAKEN，旧壳为 DATE_ADDED，需补原生查询（🟡）— 2026-10-18 P2 B05 已改为原生 DATE_ADDED（e3b7eb8）
@@ -244,6 +253,7 @@ AI 无法自动完成的验证集中在这里，详细步骤见 `docs/page-compa
 
 ## 包内 Release 构建（构建机）
 
-- `RELEASE=1 scripts/pack.sh /tmp/dootask-app-rel.tgz` 打包时排除 `.env.local`（否则包内仍指向开发服务器）；构建机 `RELEASE=1 scripts/mac-build.sh <ios|android|all> <tgz>` 分别传 `--configuration Release` / `--variant release`。前置：主仓库 `./cmd appexpo build` 同步 `assets/web/`。
+- `RELEASE=1 scripts/pack.sh /tmp/dootask-app-rel.tgz` 打包时排除 `.env.local`（否则包内仍指向开发服务器）；构建机 `RELEASE=1 scripts/mac-build.sh <ios|android|all> <tgz>` iOS 传 `--configuration Release`，Android 用 gradle assembleRelease（经 scripts/android-signing.gradle 注入签名）后 adb 覆盖安装。前置：主仓库 `./cmd appexpo build` 同步 `assets/web/`。
 - mac-build.sh 必须以文件路径执行（拒绝 stdin），清理前校验当前目录是 App 根目录。
+- Android 正式签名：导出 ANDROID_KEYSTORE_PATH / ANDROID_KEYSTORE_PASSWORD / ANDROID_KEY_ALIAS / ANDROID_KEY_PASSWORD（构建机从旧 eeui 工程读取，勿写入仓库或日志），安装设备由 ANDROID_SERIAL 指定
 - 测试服务端为 2222 端口地址；2221 是 Metro 打包服务，填入会让服务器校验一直卡在加载中。

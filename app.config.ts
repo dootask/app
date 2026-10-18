@@ -5,13 +5,14 @@ import type { ConfigContext, ExpoConfig } from 'expo/config';
 
 /**
  * 版本号来源（优先级从高到低）：
- * 1. 作为 DooTask 主仓库子模块时，读取 ../../package.json 的 version / codeVerson
- * 2. 独立克隆时，读取本仓库的 version.json（由主仓库构建脚本同步写入）
+ * 1. 本仓库的 version.json（主仓库 ./cmd appexpo build 与包内前端同时写入，保证与打包的前端一致；
+ *    构建机上的主仓库可能是旧版本，不能优先读它）
+ * 2. 缺失时回退主仓库 ../../package.json 的 version / codeVerson
  */
 function readVersion(): { version: string; code: number } {
   const candidates = [
-    path.resolve(__dirname, '../../package.json'),
     path.resolve(__dirname, 'version.json'),
+    path.resolve(__dirname, '../../package.json'),
   ];
   for (const file of candidates) {
     try {
@@ -25,7 +26,7 @@ function readVersion(): { version: string; code: number } {
       // 尝试下一个
     }
   }
-  throw new Error('无法读取 App 版本号：缺少 ../../package.json 或 version.json');
+  throw new Error('无法读取 App 版本号：缺少 version.json 或 ../../package.json');
 }
 
 const { version, code } = readVersion();
@@ -46,6 +47,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ios: {
     bundleIdentifier: 'com.dootask.task',
     buildNumber: String(code),
+    // Guangxi Hitosea（与旧 eeui 上架团队一致），真机自动签名用
+    appleTeamId: 'G365J5PZA2',
     supportsTablet: true,
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
@@ -112,6 +115,16 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         android: {
           // 本地 Web 服务 http://localhost:22223 需要明文流量
           usesCleartextTraffic: true,
+          // 原生库压缩打包（与旧 eeui 一致）；不压缩时 APK 约 424MB，压缩后接近旧版体积
+          useLegacyPackaging: true,
+          // Agora full-sdk 自带的可选扩展（会议未使用：美颜/虚拟背景/空间音频/屏幕共享等），剔除以减小体积；
+          // 保留 AI 降噪与回声消除、视频编码扩展
+          packagingOptions: {
+            exclude: [
+              'audio_beauty', 'clear_vision', 'content_inspect', 'face_capture', 'face_detection', 'lip_sync',
+              'screen_capture', 'segmentation', 'spatial_audio', 'video_av1_encoder', 'video_quality_analyzer',
+            ].map((name) => `**/libagora_${name}_extension.so`),
+          },
         },
       },
     ],
@@ -145,6 +158,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     './plugins/with-meeting',
     'expo-screen-orientation',
     './plugins/with-device-orientation',
+    './plugins/with-legacy-launcher',
   ],
   experiments: {
     typedRoutes: true,
