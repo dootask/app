@@ -55,6 +55,7 @@
 | shakeToEditOn() / shakeToEditOff() | — | iOS 摇一摇撤销；可空实现 | ✅ X1（按一期范围保留空实现） |
 | getSafeAreaInsets(cb) | → `{status:'success', top, bottom, width, height}` | 旧 iOS 返回 UIKit point，Android 返回物理像素；详见旧 DeviceUtil.m:726 / eeuiScreenUtils.java:82 | ✅ X1 |
 | getDeviceInfo(cb) | → `{status:'success', manufacturer, brand, model, modelName, deviceName, systemName, systemVersion}` | expo-device；Android 和 iOS 16+ 的 deviceName 与旧实现一致返回空串 | ✅ X1 |
+| getGeolocation(cb) | → `{status:'success', latitude, longitude}` 或 `{status:'error', error}`，一次性回调 | expo-location；WGS84、High 精度并筛选 ≤50m、20 秒超时；仅申请前台权限，保留旧双端权限/服务关闭错误字符串 | ✅（实现；待集成 import 与设备验证） |
 | getLatestPhoto(cb) | → `{status, thumbnail:{width, base64}, original:{width, path}, created, error}` | 最近一张照片（“发送最近照片”），base64 含 data URI 前缀，created 为秒 | 🟡 X2（数据、权限、缩略图和路径已实现；Expo Android 按 DATE_TAKEN，旧壳按 DATE_ADDED，严格对齐需原生补充，见 x2-media-report.md） |
 | uploadPhoto(params, cb) | `{url, data, headers, path, fieldName}` → `{status:'ready', id:url}`，然后 `{status:'success', statusCode, data}` 或 `{status:'error', error}` | 多次回调；保留旧 Android 字符串 / iOS JSON 响应差异 | ✅ X2（SDK 58 UploadTask；待集成 import 与设备验证） |
 | cancelUploadPhoto(id, cb) | → `{status:'success', id}` 或 `{status:'error', error}` | Android 原上传回调随后 error，iOS 原回调只释放 | ✅ X2（支持 ready 内取消、跨页面取消及竞态保护） |
@@ -103,6 +104,7 @@
 | `__onKeyboardStatus({keyboardType:'show'\|'hide', keyboardHeight})` | 键盘弹出或收起 | ✅ C |
 | `__onCreateTarget(url)` | target=_blank 或 window.open | ✅ C（主页面）；✅ X1（二级页按白名单在当前页加载，与旧 web.vue 一致） |
 | `__onNotificationPermissionStatus(ret)` | getNotificationPermission 返回 boolean；iOS 完整授权才为 true | ✅ X2（原页面回调，查询失败返回 false；待集成 import） |
+| `__onPermissionRequest(type, granted)` | Android WebView 音视频权限结果；按旧 eeui 取第一个音视频资源，type 固定为 `'recordAudio'`（摄像头也如此），granted 为 boolean；已授权 / 本次授权为 true，普通 / 永久拒绝为 false（旧壳普通拒绝无回调，补齐以取消录音）；定位和无音视频的请求不触发 | ✅ B02（WebView 14.0.1 补丁直接在主线程回传请求页面，取消请求或页面销毁后跳过；混合请求仍由上游逐资源授权；待 Android 编译及 V12 设备验收） |
 | `__onMeetingEvent(param)` | getInfo / success / error / endMeeting 的 uuid、invent 的 meetingid 均为字符串；status 的 status 为 boolean | ✅ X3（六类 act 与旧壳对齐，完整字段/触发时机见 x3-meeting-report.md） |
 | `__handleLink(link)` | 通过深链 `dootask://` 打开；移除 scheme 后传递路径，前端尚未就绪时延迟 2 秒 | ✅ X1（`useDeepLinkHandler` + `+native-intent.tsx`，保留 bridge-test；待首页接入及实机验证） |
 

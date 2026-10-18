@@ -1,5 +1,82 @@
+diff --git a/node_modules/react-native-webview/android/src/main/java/com/reactnativecommunity/webview/RNCWebChromeClient.java b/node_modules/react-native-webview/android/src/main/java/com/reactnativecommunity/webview/RNCWebChromeClient.java
+index 1b5c4c9..a5122a7 100644
+--- a/node_modules/react-native-webview/android/src/main/java/com/reactnativecommunity/webview/RNCWebChromeClient.java
++++ b/node_modules/react-native-webview/android/src/main/java/com/reactnativecommunity/webview/RNCWebChromeClient.java
+@@ -21,6 +21,7 @@ import androidx.core.content.ContextCompat;
+ 
+ import com.facebook.react.bridge.Arguments;
+ import com.facebook.react.bridge.LifecycleEventListener;
++import com.facebook.react.bridge.UiThreadUtil;
+ import com.facebook.react.bridge.WritableMap;
+ import com.facebook.react.common.build.ReactBuildConfig;
+ import com.facebook.react.modules.core.PermissionAwareActivity;
+@@ -178,6 +179,7 @@ public class RNCWebChromeClient extends WebChromeClient implements LifecycleEven
+         // If all the permissions are already granted, send the response to the WebView synchronously
+         if (requestedAndroidPermissions.isEmpty()) {
+             request.grant(grantedPermissions.toArray(new String[0]));
++            notifyPermissionRequest(request, grantedPermissions);
+             grantedPermissions = null;
+             return;
+         }
+@@ -189,6 +191,37 @@ public class RNCWebChromeClient extends WebChromeClient implements LifecycleEven
+         requestPermissions(requestedAndroidPermissions);
+     }
+ 
++    private void notifyPermissionRequest(PermissionRequest request, List<String> grantedResources) {
++        for (String resource : request.getResources()) {
++            if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(resource)
++                    || PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(resource)) {
++                // 旧 eeui 只检查第一个音视频资源，摄像头也回传 recordAudio。
++                final boolean granted = grantedResources.contains(resource);
++                final RNCWebView webView = mWebView;
++                UiThreadUtil.runOnUiThread(() -> {
++                    // getWebChromeClient 需 API 26，minSdk 24 下只判断实例与挂载状态
++                    if (webView == null || mWebView != webView || !webView.isAttachedToWindow()) {
++                        return;
++                    }
++                    webView.evaluateJavascript(
++                            "if(typeof window.__onPermissionRequest===\"function\"){"
++                                    + "window.__onPermissionRequest(\"recordAudio\"," + granted + ");}",
++                            null);
++                });
++                return;
++            }
++        }
++    }
++
++    @Override
++    public void onPermissionRequestCanceled(PermissionRequest request) {
++        super.onPermissionRequestCanceled(request);
++        if (permissionRequest == request) {
++            permissionRequest = null;
++            grantedPermissions = null;
++        }
++    }
++
+ 
+     @Override
+     public void onGeolocationPermissionsShowPrompt(String origin, GeolocationPermissions.Callback callback) {
+@@ -259,7 +292,8 @@ public class RNCWebChromeClient extends WebChromeClient implements LifecycleEven
+         for (int i = 0; i < permissions.length; i++) {
+ 
+             String permission = permissions[i];
+-            boolean granted = grantResults[i] == PackageManager.PERMISSION_GRANTED;
++            boolean granted = i < grantResults.length
++                    && grantResults[i] == PackageManager.PERMISSION_GRANTED;
+ 
+             if (permission.equals(Manifest.permission.ACCESS_FINE_LOCATION)
+                     && geolocationPermissionCallback != null
+@@ -301,6 +335,8 @@ public class RNCWebChromeClient extends WebChromeClient implements LifecycleEven
+                 && permissionRequest != null
+                 && grantedPermissions != null) {
+             permissionRequest.grant(grantedPermissions.toArray(new String[0]));
++            // 普通拒绝与永久拒绝都回传 false，让网页立即取消录音。
++            notifyPermissionRequest(permissionRequest, grantedPermissions);
+             permissionRequest = null;
+             grantedPermissions = null;
+         }
 diff --git a/node_modules/react-native-webview/android/src/main/java/com/reactnativecommunity/webview/RNCWebView.java b/node_modules/react-native-webview/android/src/main/java/com/reactnativecommunity/webview/RNCWebView.java
-index 80c6803..bb9be6b 100644
+index 80c6803..660db56 100644
 --- a/node_modules/react-native-webview/android/src/main/java/com/reactnativecommunity/webview/RNCWebView.java
 +++ b/node_modules/react-native-webview/android/src/main/java/com/reactnativecommunity/webview/RNCWebView.java
 @@ -18,6 +18,7 @@ import android.webkit.WebViewClient;
@@ -101,7 +178,7 @@ index 80c6803..bb9be6b 100644
      protected String injectedJavaScriptObject = null;
  
      public void setInjectedJavaScriptObject(String obj) {
-@@ -416,6 +462,7 @@ public class RNCWebView extends WebView implements LifecycleEventListener {
+@@ -416,9 +462,12 @@ public class RNCWebView extends WebView implements LifecycleEventListener {
  
      @Override
      public void destroy() {
@@ -109,6 +186,11 @@ index 80c6803..bb9be6b 100644
          if (mWebChromeClient != null) {
              mWebChromeClient.onHideCustomView();
          }
++        // 让排队中的权限回调识别已销毁的 WebView。
++        setWebChromeClient(null);
+         super.destroy();
+     }
+ 
 diff --git a/node_modules/react-native-webview/android/src/main/java/com/reactnativecommunity/webview/RNCWebViewManagerImpl.kt b/node_modules/react-native-webview/android/src/main/java/com/reactnativecommunity/webview/RNCWebViewManagerImpl.kt
 index f83033b..a056808 100644
 --- a/node_modules/react-native-webview/android/src/main/java/com/reactnativecommunity/webview/RNCWebViewManagerImpl.kt
@@ -138,7 +220,7 @@ index f83033b..a056808 100644
          val view = viewWrapper.webView
          view.injectedJSBeforeContentLoaded = value
 diff --git a/node_modules/react-native-webview/android/src/newarch/com/reactnativecommunity/webview/RNCWebViewManager.java b/node_modules/react-native-webview/android/src/newarch/com/reactnativecommunity/webview/RNCWebViewManager.java
-index fa8efb8..7f306a2 100644
+index fa8efb8..01641f1 100644
 --- a/node_modules/react-native-webview/android/src/newarch/com/reactnativecommunity/webview/RNCWebViewManager.java
 +++ b/node_modules/react-native-webview/android/src/newarch/com/reactnativecommunity/webview/RNCWebViewManager.java
 @@ -160,6 +160,18 @@ public class RNCWebViewManager extends ViewGroupManager<RNCWebViewWrapper>
@@ -161,7 +243,7 @@ index fa8efb8..7f306a2 100644
      @ReactProp(name = "injectedJavaScript")
      public void setInjectedJavaScript(RNCWebViewWrapper view, @Nullable String value) {
 diff --git a/node_modules/react-native-webview/android/src/oldarch/com/reactnativecommunity/webview/RNCWebViewManager.java b/node_modules/react-native-webview/android/src/oldarch/com/reactnativecommunity/webview/RNCWebViewManager.java
-index 974337f..f26e680 100644
+index 974337f..b40bdf0 100644
 --- a/node_modules/react-native-webview/android/src/oldarch/com/reactnativecommunity/webview/RNCWebViewManager.java
 +++ b/node_modules/react-native-webview/android/src/oldarch/com/reactnativecommunity/webview/RNCWebViewManager.java
 @@ -127,6 +127,16 @@ public class RNCWebViewManager extends ViewGroupManager<RNCWebViewWrapper> {

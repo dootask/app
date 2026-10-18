@@ -89,6 +89,20 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     'expo-router',
     'expo-status-bar',
     'expo-localization',
+    [
+      'expo-location',
+      {
+        locationWhenInUsePermission: usage('需要在使用期间访问您的位置，以便您可以进行定位签到。'),
+        locationAlwaysPermission: false,
+        locationAlwaysAndWhenInUsePermission: false,
+        locationFullAccuracyPermission: false,
+        motionUsagePermission: false,
+        isIosBackgroundLocationEnabled: false,
+        isAndroidBackgroundLocationEnabled: false,
+        isAndroidForegroundServiceEnabled: false,
+        isAndroidMotionActivityEnabled: false,
+      },
+    ],
     'expo-sqlite',
     'expo-web-browser',
     [

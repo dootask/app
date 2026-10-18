@@ -22,7 +22,9 @@
 - [x] P0 K02–K04 键盘事件对齐旧壳：iOS 按 750 宽换算、Android 物理 px；Android 只在显隐切换时上报；只投递首页（Android 已验证 819px@2.625）
 - [x] P0 T01 setScrollEnabled 不再拦截全 document touchmove/wheel，只锁外层；T03 禁选时保留输入控件选区
 - [x] P1 L06 首页恢复时刷新通知权限并清通知栏
-- [ ] P1 B01 getGeolocation（Codex 进行中）、B02 Android 录音权限回调（Codex 进行中）
+- [x] P1 B01 getGeolocation（expo-location，仅前台权限，≤50m 精度，20s 超时必回调）：双端模拟器授权后均返回 success + 坐标
+- [x] P1 B02 Android 录音权限结果回调 `__onPermissionRequest('recordAudio', bool)`（react-native-webview 补丁；普通拒绝也回 false，旧壳不回调）：双端编译通过
+- [ ] 真机验证：地图页三种地图定位、拒绝/关闭定位/超时分支、签到选点（V09）；首次/永久拒绝录音后重试（V12）
 - [ ] P0 K06 iOS fullscreen / visualViewport 实测（V04，需手动）；P1 其余项（S 安全区、N 返回/子页、K08、B03、N08）与 P2 见审计清单
 
 **需真机 / 手动触发**
