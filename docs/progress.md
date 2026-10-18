@@ -86,7 +86,7 @@ AI 无法自动完成的验证集中在这里，详细步骤见 `docs/page-compa
 - [ ] 在 GitHub 配置 app-internal Environment 与签名 secrets，手动运行 Expo App Internal workflow
 - [x] Android 包内 Release（2026-10-18 模拟器，debug 签名）：本地 Web 服务首启 → 隐私协议 → 「使用 SSO 登录」填服务器 → 登录 → 仪表盘；冷启动深链、后台恢复（状态保留）正常
 - [x] iOS 包内 Release（2026-10-18 模拟器）：修复 NWListener 同时指定 requiredLocalEndpoint 与 `on:` 端口导致「cannot override」、监听永远起不来（一直转圈）的问题；修复后监听 127.0.0.1:22223，首启出现隐私协议
-- [ ] iOS Release 手动验收（模拟器无法自动点击）：同意隐私 → 「使用 SSO 登录」填服务器 → 登录 → 强杀后 `xcrun simctl openurl <设备> dootask:///manage/messenger` 冷启动 → 切后台再回来
+- [x] iOS Release 手动验收（2026-10-18 用户在模拟器完成）：同意隐私 → 「使用 SSO 登录」填服务器 → 登录 → 强杀后 `xcrun simctl openurl <设备> dootask:///manage/messenger` 冷启动 → 切后台再回来
 - [ ] Android Release 后台恢复时偶现消息页搜索框自动获得焦点、弹出键盘（仅出现一次，复测未复现，留意）
 - [ ] 本地 Web 服务启动失败时 `useLocalWebReady` 只 setUrl(null)，界面永远停在加载圈，无报错/重试（体验待补）
 - [ ] 从旧版 eeui 包覆盖升级的缓存迁移（保留登录、设置）
