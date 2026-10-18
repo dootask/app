@@ -1,8 +1,10 @@
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { AppState, Appearance, Dimensions, Keyboard, PixelRatio, Platform } from 'react-native';
 import { useIsFocused } from 'expo-router';
+import { initialWindowMetrics, type EdgeInsets } from 'react-native-safe-area-context';
 
 import { FIRST_PAGE_NAME } from '../config';
+import { SAFE_AREA_KEY } from './modules/eeui/device';
 import { getPage, invokeWindowAll } from './pages';
 import { bridgeStore } from './store';
 
@@ -71,9 +73,15 @@ export function useBridgeRuntime() {
       if (Platform.OS === 'android' && visible === lastVisible) return;
       lastVisible = visible;
       // 旧壳只有首页 index.vue 转发该事件，子页（web.vue）不转发
-      getPage(FIRST_PAGE_NAME)?.invokeWindow('__onKeyboardStatus', {
+      const page = getPage(FIRST_PAGE_NAME);
+      if (!page) return;
+      // 旧壳同时附带安全区（单位同 keyboardHeight）
+      const insets = (page.state.get(SAFE_AREA_KEY) as EdgeInsets | undefined) ?? initialWindowMetrics?.insets;
+      page.invokeWindow('__onKeyboardStatus', {
         keyboardType: visible ? 'show' : 'hide',
         keyboardHeight: visible ? legacyHeight(height) : 0,
+        safeAreaTop: legacyHeight(insets?.top ?? 0),
+        safeAreaBottom: legacyHeight(insets?.bottom ?? 0),
       });
     };
     const showSub = Keyboard.addListener(showEvent, (e) => notifyKeyboard(true, Math.round(e.endCoordinates.height)));

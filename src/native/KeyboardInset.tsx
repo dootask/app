@@ -13,16 +13,19 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
  *
  * edgeToEdge：容器铺到底部导航栏下方、由前端自己画底部安全区占位（--navigation-bar-height）时传 true。
  * 此时少抬一个底部安全区，让占位藏到键盘后面，与 eeui 上报的 keyboardHeight = IME - safeAreaBottom 一致。
+ *
+ * enabled=false 对应 eeui softInputMode "nothing"（键盘覆盖内容，不做任何避让）。
  */
-export function KeyboardInset({ children, style, edgeToEdge = false }: {
+export function KeyboardInset({ children, style, edgeToEdge = false, enabled = true }: {
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
   edgeToEdge?: boolean;
+  enabled?: boolean;
 }) {
   const insets = useSafeAreaInsets();
   if (Platform.OS !== 'android') return <View style={style}>{children}</View>;
   return (
-    <KeyboardAvoidingView behavior="padding" automaticOffset keyboardVerticalOffset={edgeToEdge ? -insets.bottom : 0} style={style}>
+    <KeyboardAvoidingView enabled={enabled} behavior="padding" automaticOffset keyboardVerticalOffset={edgeToEdge ? -insets.bottom : 0} style={style}>
       {children}
     </KeyboardAvoidingView>
   );

@@ -60,11 +60,11 @@ registerModule('eeui', {
   },
 
   shakeToEditOn() {
-    // 一期保留接口，暂不改变系统的摇动撤销设置。
+    if (Platform.OS === 'ios') return getLegacyStoreModule().setShakeToEditEnabled(true);
   },
 
   shakeToEditOff() {
-    // 一期保留接口，暂不改变系统的摇动撤销设置。
+    if (Platform.OS === 'ios') return getLegacyStoreModule().setShakeToEditEnabled(false);
   },
 
   getSafeAreaInsets(page, callbackRef: unknown) {

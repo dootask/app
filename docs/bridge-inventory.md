@@ -28,7 +28,7 @@
 | getLocalVersion() | number App versionCode | ✅ C |
 | getLocalVersionName() | string App versionName | ✅ C |
 | getThemeName() | 'light' \| 'dark'（系统主题） | ✅ C |
-| isFullscreen() | boolean | ✅ C（值由原生 `bridgeStore.setFullscreen` 维护，平板窗口化判断待 X 补充） |
+| isFullscreen() | boolean | ✅ S08（双端原生查询；`useWindowState` 随 Dimensions / AppState 更新快照，待根布局接入及 V06 设备验收） |
 | keyboardStatus() | boolean | ✅ C |
 | getPageInfo(pageName?) | `{pageName, pageType, url, params}`；不传参数时返回当前页面 | ✅ C |
 | rewriteUrl(url) | 基于当前 location 补全为绝对地址 | ✅ C |
@@ -52,11 +52,11 @@
 | copyText(text) | — | expo-clipboard | ✅ X1 |
 | openScaner({}, cb) | → `{pageName:'scanPage', status:'create'}` → `{status:'success', text, source, format, result}` → `{pageName:'scanPage', status:'destroy'}`；支持 title / desc / continuous | 扫码页（expo-camera），手电筒回调 openLight / offLight | ✅ X2（`src/features/media`；待集成 import 与设备验证） |
 | checkUpdate() | — | 一期为空实现 | ✅ X1（按一期范围保留空实现） |
-| shakeToEditOn() / shakeToEditOff() | — | iOS 摇一摇撤销；可空实现 | ✅ X1（按一期范围保留空实现） |
+| shakeToEditOn() / shakeToEditOff() | — | iOS 摇动撤销；Android 无操作 | ✅ K09（iOS 主线程设置 applicationSupportsShakeToEdit，待 V04 设备验收） |
 | getSafeAreaInsets(cb) | → `{status:'success', top, bottom, width, height}` | 旧 iOS 返回 UIKit point，Android 返回物理像素；详见旧 DeviceUtil.m:726 / eeuiScreenUtils.java:82 | ✅ X1 |
 | getDeviceInfo(cb) | → `{status:'success', manufacturer, brand, model, modelName, deviceName, systemName, systemVersion}` | expo-device；Android 和 iOS 16+ 的 deviceName 与旧实现一致返回空串 | ✅ X1 |
 | getGeolocation(cb) | → `{status:'success', latitude, longitude}` 或 `{status:'error', error}`，一次性回调 | expo-location；WGS84、High 精度并筛选 ≤50m、20 秒超时；仅申请前台权限，保留旧双端权限/服务关闭错误字符串 | ✅（实现；待集成 import 与设备验证） |
-| getLatestPhoto(cb) | → `{status, thumbnail:{width, base64}, original:{width, path}, created, error}` | 最近一张照片（“发送最近照片”），base64 含 data URI 前缀，created 为秒 | 🟡 X2（数据、权限、缩略图和路径已实现；Expo Android 按 DATE_TAKEN，旧壳按 DATE_ADDED，严格对齐需原生补充，见 x2-media-report.md） |
+| getLatestPhoto(cb) | → `{status, thumbnail:{width, base64}, original:{width, path}, created, error}` | 最近一张照片（“发送最近照片”），base64 含 data URI 前缀，created 为秒 | ✅ X2 / B05（Android 原生按 DATE_ADDED 降序限 1 条并返回秒值；iOS 流程不变，待 V12 设备验收） |
 | uploadPhoto(params, cb) | `{url, data, headers, path, fieldName}` → `{status:'ready', id:url}`，然后 `{status:'success', statusCode, data}` 或 `{status:'error', error}` | 多次回调；保留旧 Android 字符串 / iOS JSON 响应差异 | ✅ X2（SDK 58 UploadTask；待集成 import 与设备验证） |
 | cancelUploadPhoto(id, cb) | → `{status:'success', id}` 或 `{status:'error', error}` | Android 原上传回调随后 error，iOS 原回调只释放 | ✅ X2（支持 ready 内取消、跨页面取消及竞态保护） |
 

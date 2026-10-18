@@ -173,14 +173,15 @@ export default function WebPage() {
           style={styles.navButton}
           onPress={closePage}
         >
-          <Text style={[styles.backIcon, { color: theme.navColor }]}>‹</Text>
+          <Text allowFontScaling={false} style={[styles.backIcon, { color: theme.navColor }]}>‹</Text>
         </Pressable>
-        <Text numberOfLines={1} accessibilityRole="header" style={[styles.title, { color: theme.navColor }]}>{title}</Text>
+        <Text numberOfLines={1} allowFontScaling={false} accessibilityRole="header" style={[styles.title, { color: theme.navColor }]}>{title}</Text>
         <Pressable accessibilityRole="button" accessibilityLabel="更多" accessibilityState={{ expanded: moreShow }} style={styles.navButton} onPress={() => setMoreShow(!moreShow)}>
-          <Text style={[styles.moreIcon, { color: theme.navColor }]}>•••</Text>
+          <Text allowFontScaling={false} style={[styles.moreIcon, { color: theme.navColor }]}>•••</Text>
         </Pressable>
       </View>
-      <KeyboardInset style={styles.container}>
+      {/* eeui softInputMode：nothing 不避让；resize（默认）/ pan / auto 均按 resize 处理（WebView 内 pan 与 resize 效果相近，前端无非默认调用） */}
+      <KeyboardInset style={styles.container} enabled={request.options.softInputMode !== 'nothing'}>
         <View ref={captureRef} collapsable={false} style={styles.container}>
           <BridgeWebView
             {...webViewProps}
@@ -210,7 +211,7 @@ export default function WebPage() {
             <View style={styles.menu}>
               {menuItems.map((item, index) => (
                 <Pressable key={item.action} accessibilityRole="button" onPress={() => menuAction(item.action)} style={[styles.menuItem, index > 0 && styles.menuLine]}>
-                  <Text style={styles.menuText}>{item.label}</Text>
+                  <Text allowFontScaling={false} style={styles.menuText}>{item.label}</Text>
                 </Pressable>
               ))}
             </View>
@@ -242,6 +243,7 @@ const styles = StyleSheet.create({
   navButton: { width: 56, height: 48, alignItems: 'center', justifyContent: 'center' },
   backIcon: { fontSize: 38, lineHeight: 42 },
   moreIcon: { fontSize: 18, letterSpacing: 2 },
+  // 导航栏与菜单 Text 均 allowFontScaling=false：对齐 eeui 原生 header 的固定字号
   title: { flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '600' },
   progress: { position: 'absolute', top: 0, left: 0, height: 2 },
   menuArrow: { position: 'absolute', top: 0, right: 22, borderLeftWidth: 8, borderRightWidth: 8, borderBottomWidth: 10, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderBottomColor: '#464646' },

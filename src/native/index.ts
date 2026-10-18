@@ -7,3 +7,4 @@ export { useDeepLinkHandler } from './deepLink';
 export { migrateLegacyCaches } from './legacyCaches';
 export { useDeviceOrientation } from './orientation';
 export { ensureWebServer, useLocalWebReady } from './webServer';
+export { useWindowState } from './windowState';

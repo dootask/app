@@ -6,11 +6,12 @@ import { useBridgeRuntime } from '../bridge/hooks';
 import { useAppTheme } from '../bridge/messages/theme';
 import { ToastHost } from '../bridge/modules/eeui/ToastHost';
 import MeetingOverlay from '../features/meeting/MeetingOverlay';
-import { useDeviceOrientation } from '../native';
+import { useDeviceOrientation, useWindowState } from '../native';
 
 export default function RootLayout() {
   useBridgeRuntime();
   useDeviceOrientation();
+  useWindowState();
   const { themeName, backgroundColor } = useAppTheme();
 
   return (

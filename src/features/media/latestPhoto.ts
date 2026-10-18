@@ -3,8 +3,25 @@ import { ImageManipulator, SaveFormat, type ImageRef } from 'expo-image-manipula
 import { AssetField, MediaType, Query, getPermissionsAsync, requestPermissionsAsync } from 'expo-media-library';
 import { Platform } from 'react-native';
 
+import { getLegacyStoreModule } from '../../../modules/legacy-store';
 import type { PageHandle } from '../../bridge/pages';
 import { filePath, photoCreated, thumbnailPlan } from './params';
+
+async function latestAsset() {
+  if (Platform.OS === 'android') {
+    // 旧 Android 按加入相册时间选择照片，created 已是 DATE_ADDED 秒值。
+    const asset = await getLegacyStoreModule().getLatestPhoto();
+    if (!asset) throw new Error('未找到照片');
+    return asset;
+  }
+  const [asset] = await new Query().eq(AssetField.MEDIA_TYPE, MediaType.IMAGE)
+    .orderBy({ key: AssetField.CREATION_TIME, ascending: false }).limit(1).exe();
+  if (!asset) throw new Error('相册中没有照片');
+  const [uri, name, created, shape] = await Promise.all([
+    asset.getUri(), asset.getFilename(), asset.getCreationTime(), asset.getShape(),
+  ]);
+  return { uri, name, created: photoCreated(created, Platform.OS), width: shape?.width ?? 0, height: shape?.height ?? 0 };
+}
 
 async function jpegOriginal(uri: string) {
   const context = ImageManipulator.manipulate(uri);
@@ -48,12 +65,7 @@ export async function getLatestPhoto(page: PageHandle, callbackRef: unknown) {
     if (!permission.granted && permission.canAskAgain) permission = await requestPermissionsAsync(false, ['photo']);
     if (!permission.granted) throw new Error(permissionError);
 
-    const [asset] = await new Query().eq(AssetField.MEDIA_TYPE, MediaType.IMAGE)
-      .orderBy({ key: AssetField.CREATION_TIME, ascending: false }).limit(1).exe();
-    if (!asset) throw new Error(Platform.OS === 'ios' ? '相册中没有照片' : '未找到照片');
-    const [uri, name, created, shape] = await Promise.all([
-      asset.getUri(), asset.getFilename(), asset.getCreationTime(), asset.getShape(),
-    ]);
+    const { uri, name, created, width, height } = await latestAsset();
     let original: { uri: string; width: number; height: number };
     if (Platform.OS === 'ios') {
       // 旧 iOS 先按显示方向导出质量 0.95 的 JPEG，而非返回 ph:// 或 HEIC。
@@ -63,8 +75,8 @@ export async function getLatestPhoto(page: PageHandle, callbackRef: unknown) {
       // 复制 content:// 到沙盒，确保 scoped storage 下返回的裸路径可再次上传。
       const destination = new File(Paths.cache, `eeui-original-${Date.now()}-${Math.random().toString(36).slice(2)}-${name.replace(/[^a-zA-Z0-9._-]/g, '_')}`);
       temporary.push(destination);
-      await new File(asset.id).copy(destination);
-      original = { uri: destination.uri, width: shape?.width ?? 0, height: shape?.height ?? 0 };
+      await new File(uri).copy(destination);
+      original = { uri: destination.uri, width, height };
     }
     const thumbnail = await makeThumbnail(original.uri);
     temporary.push(new File(thumbnail.uri));
@@ -83,7 +95,7 @@ export async function getLatestPhoto(page: PageHandle, callbackRef: unknown) {
       }
     }
     page.callback(callbackRef, {
-      status: 'success', created: photoCreated(created, Platform.OS),
+      status: 'success', created,
       thumbnail: {
         path: filePath(thumbnail.uri), base64: `data:image/jpeg;base64,${thumbnail.base64}`,
         width: thumbnail.width, height: thumbnail.height, size: new File(thumbnail.uri).size, name,

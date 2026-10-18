@@ -324,6 +324,17 @@ function photoFixture(platform, options = {}) {
       },
     },
     'react-native': { Platform: { OS: platform } }, './params': params,
+    '../../../modules/legacy-store': {
+      getLegacyStoreModule: () => ({
+        // Android 原生按 DATE_ADDED DESC 取一条，created 已是秒值
+        async getLatestPhoto() {
+          calls.push(['nativeLatest']);
+          if (options.empty) return null;
+          const size = options.missingSize ? { width: 0, height: 0 } : { width: 4000, height: 3000 };
+          return { uri: 'content://media/123', name: 'a.heic', created: 1_700_000_001, ...size };
+        },
+      }),
+    },
   });
   return { ...impl, page, calls, files };
 }
@@ -341,7 +352,11 @@ for (const platform of ['ios', 'android']) {
     assert.equal(result.original.width, 4000);
     assert.equal(result.original.name, 'a.heic');
     assert.deepEqual(f.calls.find((c) => c[0] === 'permission'), ['permission', false, ['photo']]);
-    assert.deepEqual(f.calls.find((c) => c[0] === 'order')[1], { key: 'creationTime', ascending: false });
+    if (platform === 'ios') assert.deepEqual(f.calls.find((c) => c[0] === 'order')[1], { key: 'creationTime', ascending: false });
+    else {
+      assert.equal(f.calls.some((c) => c[0] === 'order'), false);
+      assert.deepEqual(f.calls.find((c) => c[0] === 'copy'), ['copy', 'content://media/123']);
+    }
     assert.equal(f.calls.filter((c) => c[0] === 'save' && !c[1].base64).length, platform === 'ios' ? 1 : 0);
     assert.equal(f.calls.filter((c) => c[0] === 'context.release').length, f.calls.filter((c) => c[0] === 'image.release').length);
     assert.equal(f.calls.some((c) => c[0] === 'delete'), false);
