@@ -28,7 +28,7 @@ for (const name of sourceNames) {
 }
 const resources = extension.buildPhases.map((ref) => project.hash.project.objects.PBXResourcesBuildPhase?.[ref.value]).filter(Boolean);
 assert.equal(resources.length, 1);
-assert.equal(resources[0].files.length, 2);
+assert.equal(resources[0].files.length, 3);
 const variant = Object.values(project.hash.project.objects.PBXVariantGroup).filter((group) => typeof group === 'object' && unquote(group.name) === 'Localizable.strings');
 assert.equal(variant.length, 1);
 assert.equal(variant[0].children.length, 11);
@@ -70,7 +70,7 @@ async function verifyRepeatedMods() {
     }
     assert.equal(Object.values(project.pbxNativeTargetSection()).filter((item) => typeof item === 'object').length, targets.length);
     assert.equal(host.dependencies.length, 1);
-    assert.equal(resources[0].files.length, 2);
+    assert.equal(resources[0].files.length, 3);
     for (const ref of list.buildConfigurations) assert.equal(configurations[ref.value].buildSettings.DEVELOPMENT_TEAM, 'BUILDTEAM1');
     let entitlements = { 'other.capability': ['preserved'] };
     for (let count = 0; count < 2; count += 1) {

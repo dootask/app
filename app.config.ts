@@ -52,6 +52,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     supportsTablet: true,
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
+      // 声明支持的语言，系统菜单（复制/翻译等）才会跟随手机语言；缺省时只按英文显示
+      CFBundleLocalizations: ['zh-Hans', 'zh-Hant', 'zh-HK', 'en', 'ja', 'ko', 'de', 'fr', 'id', 'ru'],
       NSAppTransportSecurity: {
         NSAllowsArbitraryLoads: true,
         NSAllowsLocalNetworking: true,
@@ -70,7 +72,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     package: 'com.dootask.task',
     versionCode: code,
     adaptiveIcon: {
-      backgroundColor: '#E6F4FE',
+      backgroundColor: '#8BCF70',
       foregroundImage: './assets/android-icon-foreground.png',
       backgroundImage: './assets/android-icon-background.png',
       monochromeImage: './assets/android-icon-monochrome.png',

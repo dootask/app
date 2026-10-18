@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
-import { ActivityIndicator, BackHandler, View } from 'react-native';
+import { ActivityIndicator, BackHandler, Platform, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BridgeWebView, type BridgeWebViewHandle } from '../bridge/BridgeWebView';
 import { usePageActive } from '../bridge/hooks';
@@ -44,6 +45,7 @@ function ReadyMainPage({ bridgeRef: ref, webLoadedRef, webUrl }: {
 }) {
   const { props: webViewProps, onPage, captureRef, values: webViewValues, url: overrideUrl } = usePageWebViewOverrides(FIRST_PAGE_NAME, ref);
   const resumeNum = useRef(0);
+  const insets = useSafeAreaInsets();
 
   const info = useMemo<PageInfo>(
     () => ({ pageName: FIRST_PAGE_NAME, pageType: 'app', url: webUrl, params: {} }),
@@ -83,6 +85,9 @@ function ReadyMainPage({ bridgeRef: ref, webLoadedRef, webUrl }: {
           onPage={onPage}
           contentInsetAdjustmentBehavior="never"
           automaticallyAdjustContentInsets={false}
+          // 对齐 eeui 首页 fullscreen：iOS 底部负 inset 抵消安全区，键盘弹出时前端的底部安全区占位藏到键盘后面，
+          // 否则输入框与键盘之间会多出一段安全区距离
+          contentInset={Platform.OS === 'ios' ? { bottom: -insets.bottom } : undefined}
           // 对齐 eeui 首页 hiddenDone：隐藏 iOS 键盘上方的上一项/下一项/完成工具条
           hideKeyboardAccessoryView
           onCreateTarget={onCreateTarget}

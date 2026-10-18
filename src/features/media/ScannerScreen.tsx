@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { CameraView, scanFromURLAsync, type BarcodeScanningResult } from 'expo-camera';
 import { File, Paths } from 'expo-file-system';
 import { Stack } from 'expo-router';
@@ -63,11 +63,13 @@ export default function ScannerScreen() {
       )}
       <SafeAreaView style={styles.overlay}>
         <View style={styles.toolbar}>
-          <Pressable accessibilityRole="button" accessibilityLabel="关闭扫码" hitSlop={12} onPress={closeMediaRoute}>
-            <Text style={styles.button}>关闭</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel="返回" style={styles.topButton} hitSlop={12} onPress={closeMediaRoute}>
+            <View style={styles.backIcon} />
+            <Text style={styles.button}>返回</Text>
           </Pressable>
-          <Text style={styles.title}>{request?.options.title || '扫一扫'}</Text>
-          <View style={styles.spacer} />
+          {request && <Pressable accessibilityRole="button" style={styles.topButton} onPress={() => { void pickPicture(); }} disabled={picking}>
+            <Text style={styles.button}>相册</Text>
+          </Pressable>}
         </View>
         <View pointerEvents="none" style={styles.center}>
           {request && !cameraError ? (
@@ -79,15 +81,14 @@ export default function ScannerScreen() {
           ) : <Text style={styles.description}>{cameraError ? '无法启动相机，请关闭后重试' : '扫码页面已失效，请重新打开'}</Text>}
         </View>
         {request && <View style={styles.actions}>
-          <Pressable accessibilityRole="button" onPress={() => {
+          <Pressable accessibilityRole="button" accessibilityLabel={torch ? '关闭手电筒' : '打开手电筒'}
+            accessibilityState={{ selected: torch, disabled: picking || cameraError }} style={styles.torchButton} onPress={() => {
             const enabled = !torch;
             setTorch(enabled);
             if (handle) scannerLight(handle.page, request, enabled);
           }} disabled={picking || cameraError}>
-            <Text style={styles.button}>{torch ? '关闭手电筒' : '打开手电筒'}</Text>
-          </Pressable>
-          <Pressable accessibilityRole="button" onPress={() => { void pickPicture(); }} disabled={picking}>
-            <Text style={styles.button}>从图片识别</Text>
+            <Image source={torch ? require('../../../assets/scanner/torch-on.png') : require('../../../assets/scanner/torch-off.png')}
+              style={styles.torchIcon} resizeMode="contain" />
           </Pressable>
         </View>}
       </SafeAreaView>
@@ -98,12 +99,15 @@ export default function ScannerScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#000' },
   overlay: { flex: 1, justifyContent: 'space-between' },
-  toolbar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, backgroundColor: '#0008' },
-  title: { flex: 1, color: '#fff', textAlign: 'center', fontSize: 18 },
-  button: { color: '#fff', fontSize: 16, paddingVertical: 10 },
-  spacer: { width: 32 },
+  toolbar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 12 },
+  topButton: { minWidth: 44, minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  // 细尖角返回图标（iOS 导航栏风格），用边框画出避免位图缩放发虚
+  backIcon: { width: 11, height: 11, marginLeft: 4, borderLeftWidth: 2, borderBottomWidth: 2, borderColor: '#fff', transform: [{ rotate: '45deg' }] },
+  button: { color: '#fff', fontSize: 16, textShadowColor: '#0009', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 28 },
   frame: { width: '80%', maxWidth: 320, aspectRatio: 1, borderWidth: 2, borderColor: '#fff9', borderRadius: 16 },
   description: { color: '#fff', textAlign: 'center', fontSize: 16, marginVertical: 24 },
-  actions: { flexDirection: 'row', justifyContent: 'space-around', padding: 20, backgroundColor: '#0008' },
+  actions: { alignItems: 'center', padding: 20 },
+  torchButton: { width: 64, height: 64, borderRadius: 32, overflow: 'hidden' },
+  torchIcon: { width: 64, height: 64 },
 });

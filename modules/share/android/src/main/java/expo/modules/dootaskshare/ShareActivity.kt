@@ -6,9 +6,11 @@ import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.text.TextUtils
 import android.util.LruCache
 import android.view.Gravity
 import android.view.View
@@ -19,6 +21,7 @@ import android.view.inputmethod.InputMethodManager
 import android.widget.BaseAdapter
 import android.widget.Button
 import android.widget.EditText
+import android.widget.FrameLayout
 import android.widget.HorizontalScrollView
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -59,6 +62,8 @@ class ShareActivity : Activity() {
   private lateinit var status: TextView
   private lateinit var retry: Button
   private lateinit var progress: ProgressBar
+  private lateinit var spinner: ProgressBar
+  private lateinit var listState: LinearLayout
   private var chatList = ""
   private var token = ""
 
@@ -135,24 +140,51 @@ class ShareActivity : Activity() {
   }
 
   private fun setupView() {
-    val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(12), 0, dp(12), 0) }
+    val colors = obtainStyledAttributes(intArrayOf(android.R.attr.colorBackground, android.R.attr.listDivider, android.R.attr.selectableItemBackground))
+    val backgroundColor = colors.getColor(0, 0)
+    val listDivider = colors.getDrawable(1)
+    val itemForeground = colors.getResourceId(2, 0)
+    colors.recycle()
+    val root = LinearLayout(this).apply {
+      orientation = LinearLayout.VERTICAL
+      setBackgroundColor(backgroundColor)
+    }
     root.setOnApplyWindowInsetsListener { view, insets ->
       if (Build.VERSION.SDK_INT >= 30) {
         val bars = insets.getInsets(WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout() or WindowInsets.Type.ime())
-        view.setPadding(bars.left + dp(12), bars.top, bars.right + dp(12), bars.bottom)
+        view.setPadding(bars.left, bars.top, bars.right, bars.bottom)
       } else {
         @Suppress("DEPRECATION")
-        view.setPadding(insets.systemWindowInsetLeft + dp(12), insets.systemWindowInsetTop,
-          insets.systemWindowInsetRight + dp(12), insets.systemWindowInsetBottom)
+        view.setPadding(insets.systemWindowInsetLeft, insets.systemWindowInsetTop,
+          insets.systemWindowInsetRight, insets.systemWindowInsetBottom)
       }
       insets
     }
-    val header = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
-    header.addView(Button(this).apply { setText(text("cancelTitle")); setOnClickListener { finish() } })
-    header.addView(TextView(this).apply { setText("DooTask"); textSize = 18f; gravity = Gravity.CENTER }, LinearLayout.LayoutParams(0, dp(52), 1f))
-    sendButton = Button(this).apply { setOnClickListener { send() } }
-    header.addView(sendButton)
-    root.addView(header)
+    val header = LinearLayout(this).apply {
+      gravity = Gravity.CENTER_VERTICAL
+      setPadding(dp(12), 0, dp(12), 0)
+    }
+    // 两侧按钮等宽，文案或选择数量变化时标题仍保持水平居中。
+    header.addView(Button(this, null, android.R.attr.borderlessButtonStyle).apply {
+      setText(text("cancelTitle"))
+      gravity = Gravity.START or Gravity.CENTER_VERTICAL
+      isAllCaps = false
+      maxLines = 1
+      ellipsize = TextUtils.TruncateAt.END
+      setPadding(0, 0, 0, 0)
+      setOnClickListener { finish() }
+    }, LinearLayout.LayoutParams(0, -1, 1f))
+    header.addView(TextView(this).apply { setText("DooTask"); textSize = 18f; gravity = Gravity.CENTER }, LinearLayout.LayoutParams(-2, -1))
+    sendButton = Button(this, null, android.R.attr.borderlessButtonStyle).apply {
+      gravity = Gravity.END or Gravity.CENTER_VERTICAL
+      isAllCaps = false
+      maxLines = 1
+      ellipsize = TextUtils.TruncateAt.END
+      setPadding(0, 0, 0, 0)
+      setOnClickListener { send() }
+    }
+    header.addView(sendButton, LinearLayout.LayoutParams(0, -1, 1f))
+    root.addView(header, LinearLayout.LayoutParams(-1, dp(52)))
     search = EditText(this).apply {
       hint = text("searchTitle")
       isSingleLine = true
@@ -162,30 +194,42 @@ class ShareActivity : Activity() {
         if (action == EditorInfo.IME_ACTION_SEARCH) { hideKeyboard(); loadList(); true } else false
       }
     }
-    root.addView(search, LinearLayout.LayoutParams(-1, dp(52)))
+    root.addView(search, LinearLayout.LayoutParams(-1, dp(52)).apply { setMargins(dp(12), 0, dp(12), 0) })
     breadcrumbs = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
     breadcrumbScroll = HorizontalScrollView(this).apply { addView(breadcrumbs); isHorizontalScrollBarEnabled = false }
-    root.addView(breadcrumbScroll, LinearLayout.LayoutParams(-1, dp(52)))
+    root.addView(breadcrumbScroll, LinearLayout.LayoutParams(-1, dp(52)).apply { setMargins(dp(12), 0, dp(12), 0) })
+    spinner = ProgressBar(this)
     progress = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply { isIndeterminate = true; max = 100 }
-    root.addView(progress, LinearLayout.LayoutParams(-1, dp(4)))
-    status = TextView(this).apply { gravity = Gravity.CENTER; setPadding(0, dp(8), 0, dp(8)) }
-    root.addView(status)
+    status = TextView(this).apply { gravity = Gravity.CENTER; setPadding(0, dp(8), 0, dp(8)); visibility = View.GONE }
     retry = Button(this).apply { setText("↻"); contentDescription = text("netWorkErrorTitle"); visibility = View.GONE; setOnClickListener { loadList() } }
-    root.addView(retry)
     adapter = object : BaseAdapter() {
       override fun getCount() = rows.size
       override fun getItem(position: Int) = rows[position]
       override fun getItemId(position: Int) = position.toLong()
       override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
         val row = rows[position]
-        val container = LinearLayout(this@ShareActivity).apply { gravity = Gravity.CENTER_VERTICAL; setPadding(dp(8), dp(8), dp(8), dp(8)); minimumHeight = dp(60) }
+        val container = LinearLayout(this@ShareActivity).apply {
+          gravity = Gravity.CENTER_VERTICAL
+          setPadding(dp(8), dp(9), dp(20), dp(9))
+          minimumHeight = dp(60)
+          setBackgroundColor(backgroundColor)
+          if (itemForeground != 0) foreground = getDrawable(itemForeground)
+        }
         val icon = ImageView(this@ShareActivity).apply {
           setImageResource(if (row.isFolder) android.R.drawable.ic_menu_agenda else android.R.drawable.ic_menu_myplaces)
           scaleType = ImageView.ScaleType.CENTER_CROP
+          background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(backgroundColor) }
+          clipToOutline = true
           tag = row.icon
         }
-        container.addView(icon, LinearLayout.LayoutParams(dp(40), dp(40)))
-        container.addView(TextView(this@ShareActivity).apply { setText(row.name); textSize = 16f; setPadding(dp(12), 0, dp(8), 0) }, LinearLayout.LayoutParams(0, -2, 1f))
+        container.addView(icon, LinearLayout.LayoutParams(dp(42), dp(42)))
+        container.addView(TextView(this@ShareActivity).apply {
+          setText(row.name)
+          textSize = 16f
+          maxLines = 1
+          ellipsize = TextUtils.TruncateAt.END
+          setPadding(dp(8), 0, dp(8), 0)
+        }, LinearLayout.LayoutParams(0, -2, 1f))
         container.addView(TextView(this@ShareActivity).apply { setText(if (row.isFolder) "›" else if (selected.containsKey(row.dialogID)) "☑" else "☐"); textSize = 24f })
         avatar(row.icon, icon)
         return container
@@ -193,6 +237,9 @@ class ShareActivity : Activity() {
     }
     list = ListView(this).apply {
       adapter = this@ShareActivity.adapter
+      setBackgroundColor(backgroundColor)
+      divider = listDivider
+      dividerHeight = maxOf(1, dp(1))
       setOnItemClickListener { _, _, position, _ ->
         if (!loading && !sending) {
           hideKeyboard()
@@ -206,7 +253,20 @@ class ShareActivity : Activity() {
         }
       }
     }
-    root.addView(list, LinearLayout.LayoutParams(-1, 0, 1f))
+    val listArea = FrameLayout(this)
+    listArea.addView(list, FrameLayout.LayoutParams(-1, -1))
+    listState = LinearLayout(this).apply {
+      orientation = LinearLayout.VERTICAL
+      gravity = Gravity.CENTER
+      setPadding(dp(16), dp(16), dp(16), dp(16))
+      background = GradientDrawable().apply { setColor(backgroundColor); cornerRadius = dp(12).toFloat() }
+      addView(spinner, LinearLayout.LayoutParams(dp(48), dp(48)))
+      addView(progress, LinearLayout.LayoutParams(-1, dp(4)))
+      addView(status, LinearLayout.LayoutParams(-1, -2))
+      addView(retry, LinearLayout.LayoutParams(-2, -2))
+    }
+    listArea.addView(listState, FrameLayout.LayoutParams(-1, -2, Gravity.CENTER).apply { setMargins(dp(16), 0, dp(16), 0) })
+    root.addView(listArea, LinearLayout.LayoutParams(-1, 0, 1f))
     setContentView(root)
     root.requestApplyInsets()
     updateControls()
@@ -241,7 +301,14 @@ class ShareActivity : Activity() {
     breadcrumbs.isEnabled = !loading && !sending
     search.visibility = if (path.isEmpty()) View.VISIBLE else View.GONE
     breadcrumbScroll.visibility = if (path.isEmpty()) View.GONE else View.VISIBLE
-    progress.visibility = if (loading || sending) View.VISIBLE else View.GONE
+    spinner.visibility = if (loading) View.VISIBLE else View.GONE
+    progress.visibility = if (sending) View.VISIBLE else View.GONE
+    listState.visibility = if (loading || sending || status.visibility == View.VISIBLE || retry.visibility == View.VISIBLE) View.VISIBLE else View.GONE
+  }
+
+  private fun setStatus(message: String) {
+    status.text = message
+    status.visibility = if (message.isEmpty()) View.GONE else View.VISIBLE
   }
 
   private fun updateBreadcrumbs() {
@@ -278,7 +345,7 @@ class ShareActivity : Activity() {
     rows = emptyList()
     adapter.notifyDataSetChanged()
     loading = true
-    status.text = ""
+    setStatus("")
     retry.visibility = View.GONE
     progress.isIndeterminate = true
     updateControls()
@@ -292,7 +359,7 @@ class ShareActivity : Activity() {
 
   private fun showError(error: Exception, fatal: Boolean = false) {
     loading = false
-    status.text = if (error is ShareException) error.serverMessage ?: text(error.key) else text("netWorkErrorTitle")
+    setStatus(if (error is ShareException) error.serverMessage ?: text(error.key) else text("netWorkErrorTitle"))
     retry.visibility = if (fatal) View.GONE else View.VISIBLE
     updateControls()
   }
@@ -321,7 +388,7 @@ class ShareActivity : Activity() {
               ui {
                 val total = ((index * 100 + percent) / payloads.size).coerceAtMost(99)
                 progress.progress = total
-                status.text = "${text("sendingTitle")} $total%"
+                setStatus("${text("sendingTitle")} $total%")
               }
             }
             success += 1

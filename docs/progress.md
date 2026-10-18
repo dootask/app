@@ -257,3 +257,13 @@ AI 无法自动完成的验证集中在这里，详细步骤见 `docs/page-compa
 - mac-build.sh 必须以文件路径执行（拒绝 stdin），清理前校验当前目录是 App 根目录。
 - Android 正式签名：导出 ANDROID_KEYSTORE_PATH / ANDROID_KEYSTORE_PASSWORD / ANDROID_KEY_ALIAS / ANDROID_KEY_PASSWORD（构建机从旧 eeui 工程读取，勿写入仓库或日志），安装设备由 ANDROID_SERIAL 指定
 - 测试服务端为 2222 端口地址；2221 是 Metro 打包服务，填入会让服务器校验一直卡在加载中。
+
+## 真机 UI 修复（2026-10-18，两轮）
+
+- 图标：iOS / Android 换回旧 DooTask 图标，Android 自适应图标背景 `#8BCF70`。
+- iOS 系统菜单：`CFBundleLocalizations` 声明多语言，复制/翻译等系统菜单跟随手机语言。
+- iOS 键盘间距：主页面 WebView `contentInset.bottom = -safeAreaBottom`（对齐 eeui fullscreen），消除输入框与键盘间多出的安全区距离。
+- 扫一扫：透明顶栏（细尖角返回 + 相册），无标题，底部旧版手电筒图标。
+- 分享扩展：还原旧版样式——iOS 自绘 70pt 顶栏（文字取消/发送、居中标题）、全宽 plain 列表（行高 60、42pt 圆头像、旧版单选/目录图标）、居中 HUD、失败刷新按钮；旧资源放在 `ShareAssets.xcassets`，由 with-share 插件登记到扩展 Resources。Android 同步改回全宽普通列表。
+- 会议：控制栏使用旧版 meeting PNG；扬声器按钮用新增 `meeting_speaker_on/off.png`（旧版无此按钮，图标同步放到 mobile 旧资源目录）；标题后显示加入/重连 loading，错误提示改为自动消失的浮层；成员卡片麦克风/摄像头关闭图标分开显示。最小化悬浮条按旧版尺寸与深浅色。
+- ✅ 双端 Release 构建通过，IPA（debugging 签名）真机安装验收通过。

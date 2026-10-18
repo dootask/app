@@ -131,6 +131,20 @@ function withShare(config) {
     }
 
     const [targetId, nativeTarget] = target;
+    // 资产目录在新建和已有 target 上都登记，不依赖主工程存在 Resources 分组。
+    const extensionGroup = project.findPBXGroupKey({ name: TARGET, path: TARGET });
+    const resources = project.pbxResourcesBuildPhaseObj(targetId);
+    for (const directory of fs.readdirSync(destination).filter((file) => file.endsWith('.xcassets'))) {
+      const added = project.addFile(directory, extensionGroup);
+      const fileRef = added?.fileRef ?? project.getPBXGroupByKey(extensionGroup).children.find(({ value }) =>
+        project.pbxFileReferenceSection()[value]?.path?.replaceAll('"', '') === directory)?.value;
+      if (!fileRef) throw new Error(`无法登记分享扩展资源：${directory}`);
+      // 用文件引用检查构建阶段，重复同步和重新读取工程后也不重复添加。
+      if (resources.files.some(({ value }) => project.pbxBuildFileSection()[value]?.fileRef === fileRef)) continue;
+      const buildFile = { uuid: project.generateUuid(), fileRef, basename: directory, group: 'Resources', target: targetId };
+      project.addToPbxBuildFileSection(buildFile);
+      project.addToPbxResourcesBuildPhase(buildFile);
+    }
     const configurationList = project.pbxXCConfigurationList()[nativeTarget.buildConfigurationList];
     const configurations = project.pbxXCBuildConfigurationSection();
     const mainTarget = project.getFirstTarget();

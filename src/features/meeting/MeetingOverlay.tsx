@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import { Keyboard, PanResponder, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Image, Keyboard, PanResponder, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useAppTheme } from '../../bridge/messages/theme';
 import { activeMeeting, showMeeting } from './registry';
 import { subscribeMeetingChange } from './runtime';
 import type { MeetingSession } from './session';
 
-const WIDTH = 190;
-const HEIGHT = 76;
+const WIDTH = 80;
+const HEIGHT = 36;
 
 /** 挂在根布局 Stack 后面；缩小/邀请时让 WebView 继续接收触摸。 */
 export default function MeetingOverlay() {
@@ -19,6 +20,7 @@ function MeetingBubble({ session }: { session: MeetingSession }) {
   const snapshot = useSyncExternalStore(session.subscribe, session.getSnapshot, session.getSnapshot);
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  const { themeName } = useAppTheme();
   const [position, setPosition] = useState(() => {
     const saved = session.page.state.get('meeting.miniPosition') as { x: number; y: number } | undefined;
     return saved ?? { x: width - WIDTH - 12, y: insets.top + 80 };
@@ -58,14 +60,13 @@ function MeetingBubble({ session }: { session: MeetingSession }) {
   if (!snapshot.minimized || snapshot.phase === 'ended') return null;
   return (
     <View pointerEvents="box-none" style={styles.host}>
-      <View {...panResponder.panHandlers} style={[styles.bubble, { left: position.x, top: position.y }]}>
+      <View {...panResponder.panHandlers} style={[styles.bubble, themeName === 'dark' && styles.darkBubble, { left: position.x, top: position.y }]}>
         <Pressable
           accessibilityRole="button" accessibilityLabel={session.strings.restore}
           onPress={() => { Keyboard.dismiss(); showMeeting(session); }} style={styles.button}
         >
-          <Text style={styles.name} numberOfLines={1}>{session.params.name || session.strings.meeting}</Text>
-          <Text style={styles.media}>{snapshot.audio ? '🎙' : '🎙×'}　{snapshot.video ? '▣' : '▣×'}　↗</Text>
-          <Text style={styles.hint} numberOfLines={1}>{session.strings.restore}</Text>
+          <Image source={snapshot.audio ? require('../../../assets/meeting/meeting_white_audio_on.png') : require('../../../assets/meeting/meeting_white_audio_off.png')} style={styles.icon} resizeMode="contain" accessible={false} />
+          <Image source={snapshot.video ? require('../../../assets/meeting/meeting_white_video_on.png') : require('../../../assets/meeting/meeting_white_video_off.png')} style={styles.icon} resizeMode="contain" accessible={false} />
         </Pressable>
       </View>
     </View>
@@ -74,8 +75,8 @@ function MeetingBubble({ session }: { session: MeetingSession }) {
 
 const styles = StyleSheet.create({
   host: { ...StyleSheet.absoluteFill, zIndex: 100, elevation: 100 },
-  bubble: { position: 'absolute', width: WIDTH, height: HEIGHT, borderRadius: 12, backgroundColor: '#166534', overflow: 'hidden', elevation: 12 },
-  button: { flex: 1, justifyContent: 'center', paddingHorizontal: 12, gap: 2 },
-  name: { color: '#fff', fontSize: 13, fontWeight: '600' },
-  media: { color: '#fff', fontSize: 17 }, hint: { color: '#dcfce7', fontSize: 11 },
+  bubble: { position: 'absolute', width: WIDTH, height: HEIGHT, borderRadius: 6, backgroundColor: '#A1A1A1', overflow: 'hidden', elevation: 12 },
+  darkBubble: { backgroundColor: '#404040' },
+  button: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 14 },
+  icon: { width: 20, height: 20 },
 });
