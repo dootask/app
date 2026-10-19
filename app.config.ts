@@ -140,8 +140,15 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
           usesCleartextTraffic: true,
           // 原生库压缩打包（与旧 eeui 一致）；不压缩时 APK 约 424MB，压缩后接近旧版体积
           useLegacyPackaging: true,
-          // DooPush SDK 的 vivo 接收器继承 vivo 推送 SDK，未配置 vivo 通道时该 SDK 不引入，Release 混淆需忽略
-          extraProguardRules: '-dontwarn com.vivo.push.**',
+          // DooPush SDK 的 vivo 接收器继承 vivo 推送 SDK，未配置 vivo 通道时该 SDK 不引入，Release 混淆需忽略；
+          // HMS 按华为混淆说明保留（DooPush 反射调用），EMUI 系统类与华为分析 SDK 仅在真机/按需存在
+          extraProguardRules: [
+            '-dontwarn com.vivo.push.**',
+            '-keep class com.huawei.hms.** { *; }',
+            '-keep class com.huawei.hianalytics.** { *; }',
+            '-dontwarn com.huawei.**',
+            '-dontwarn android.telephony.HwTelephonyManager',
+          ].join('\n'),
           // Agora full-sdk 自带的可选扩展（会议未使用：美颜/虚拟背景/空间音频/屏幕共享等），剔除以减小体积；
           // 保留 AI 降噪与回声消除、视频编码扩展
           packagingOptions: {
