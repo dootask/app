@@ -8,7 +8,17 @@ import { isFrontendDeepLink } from './linkRouting';
 const READY_AT = 'native:deepLinkReadyAt';
 const INITIAL_HANDLED = '__nativeInitialLinkHandled';
 
-/** getPage 应在 WebView 成功加载前返回 null；首次就绪再留两秒给 Vue 注册全局函数。 */
+/** 页面首次可用后再留两秒给 Vue 注册全局函数（深链接、推送点击共用）。 */
+export function isPageReady(page: PageHandle): boolean {
+  let readyAt = page.state.get(READY_AT) as number | undefined;
+  if (readyAt === undefined) {
+    readyAt = Date.now() + 2000;
+    page.state.set(READY_AT, readyAt);
+  }
+  return Date.now() >= readyAt;
+}
+
+/** getPage 应在 WebView 成功加载前返回 null。 */
 export function useDeepLinkHandler(getPage: () => PageHandle | null): void {
   const getPageRef = useRef(getPage);
   useEffect(() => { getPageRef.current = getPage; }, [getPage]);
@@ -25,12 +35,7 @@ export function useDeepLinkHandler(getPage: () => PageHandle | null): void {
       if (timer) clearTimeout(timer);
       const page = getPageRef.current();
       if (page) {
-        let readyAt = page.state.get(READY_AT) as number | undefined;
-        if (readyAt === undefined) {
-          readyAt = Date.now() + 2000;
-          page.state.set(READY_AT, readyAt);
-        }
-        if (Date.now() >= readyAt) {
+        if (isPageReady(page)) {
           while (pending.length) {
             const link = pending.shift()!;
             // 旧 iOS share 入口和 Android WelcomeActivity 都会先移除 scheme。

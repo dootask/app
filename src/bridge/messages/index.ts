@@ -32,12 +32,6 @@ registerMessage('setVibrate', (_page, payload) => {
 
 registerMessage('gotoSetting', () => Linking.openSettings());
 
-for (const action of ['setUmengAlias', 'delUmengAlias']) {
-  registerMessage(action, () => {
-    console.info(`[bridge] ${action}：一期未接入推送`);
-  });
-}
-
 registerMessage('setPageData', (page, payload) => {
   if (!payload.data || typeof payload.data !== 'object' || Array.isArray(payload.data)) return;
   const { pageData } = getPageWebViewState(page).values;

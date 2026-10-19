@@ -11,6 +11,7 @@ import { SnapshotOverlay, usePageWebViewOverrides } from '../bridge/modules/webv
 import type { PageInfo } from '../bridge/protocol';
 import { FIRST_PAGE_NAME } from '../config';
 import { clearAllNotifications, refreshNotificationPermission } from '../features/notifications';
+import { usePushClickHandler } from '../features/push';
 import { ensureAppUniqueId, KeyboardInset, migrateLegacyCaches, useDeepLinkHandler, useLocalWebReady } from '../native';
 
 /**
@@ -21,7 +22,9 @@ export default function MainPage() {
   const webLoadedRef = useRef(false);
   const [nativeReady, setNativeReady] = useState(false);
   const { url: webUrl, failed: webFailed, retry: retryWeb } = useLocalWebReady();
-  useDeepLinkHandler(useCallback(() => webLoadedRef.current ? ref.current?.page ?? null : null, []));
+  const getLoadedPage = useCallback(() => webLoadedRef.current ? ref.current?.page ?? null : null, []);
+  useDeepLinkHandler(getLoadedPage);
+  usePushClickHandler(getLoadedPage);
 
   useEffect(() => {
     let disposed = false;

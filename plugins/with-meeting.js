@@ -13,7 +13,9 @@ module.exports = function withMeeting(config) {
   config = withInfoPlist(config, (mod) => {
     mod.modResults.NSCameraUsageDescription ??= '$(PRODUCT_NAME) 需要使用相机进行视频会议。';
     mod.modResults.NSMicrophoneUsageDescription ??= '$(PRODUCT_NAME) 需要使用麦克风进行语音及视频会议。';
-    mod.modResults.UIBackgroundModes = [...new Set([...(mod.modResults.UIBackgroundModes ?? []), 'audio', 'voip'])];
+    // 会议后台保持通话只需 audio；未使用 PushKit/CallKit，不声明 voip（只声明不用会被审核拒绝）
+    const modes = (mod.modResults.UIBackgroundModes ?? []).filter((mode) => mode !== 'voip');
+    mod.modResults.UIBackgroundModes = [...new Set([...modes, 'audio'])];
     return mod;
   });
   return withAndroidManifest(config, (mod) => {

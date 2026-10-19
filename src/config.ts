@@ -28,3 +28,10 @@ export const APP_VERSION_CODE =
 
 /** 主页面名称（前端 $A.eeuiAppGetPageInfo().pageName === 'firstPage' 判断首页） */
 export const FIRST_PAGE_NAME = 'firstPage';
+
+/**
+ * DooPush 客户端凭证（只能注册设备，随安装包分发，等同旧版 eeui.config.js 中的友盟 appkey）。
+ * 服务端发送用的 App Secret 由各服务器在「系统设置 → App 推送」填写，不放在 App 里。
+ */
+export const DOOPUSH_APP_ID = '10';
+export const DOOPUSH_APP_KEY = 'dp_ak_eSqQPRXcjSR1xXtOrXGcHvjKGVEKarBA';

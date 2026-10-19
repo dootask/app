@@ -151,9 +151,18 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     [
       'expo-notifications',
       {
-        // 一期只用本地权限/角标，不写 aps-environment；二期接 DooPush 时再开启
+        // 远程推送由 DooPush 插件负责（aps-environment、remote-notification），这里只用本地权限/角标/点击响应
         enableRemoteNotifications: false,
         enableBackgroundRemoteNotifications: false,
+      },
+    ],
+    [
+      'doopush-react-native-sdk',
+      {
+        // App ID / App Key 在 src/config.ts 中由 JS 调用 DooPush.configure 传入
+        ios: { mode: 'production' },
+        // Android 厂商通道待凭证到位后在此配置（services 文件不进仓库）
+        android: { vendors: {} },
       },
     ],
     './plugins/with-share',
