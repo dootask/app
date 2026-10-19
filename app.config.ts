@@ -109,6 +109,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ],
   },
   plugins: [
+    // 同类 mod 后注册先执行：放在最前，才能在 with-share 加完 Copy Files 阶段后再调整顺序
+    './plugins/with-release-strip-order',
     'expo-router',
     'expo-status-bar',
     'expo-localization',

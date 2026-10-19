@@ -298,5 +298,6 @@ AI 无法自动完成的验证集中在这里，详细步骤见 `docs/page-compa
 - 本地网络改为 DooTask 自己的说明（自部署服务器在局域网时 WebView 访问会触发授权）；此前 Release 包里残留 expo-dev-launcher 的英文默认文案。dev-launcher 的 Release 剥离脚本只删 `_expo._tcp` 和它自己的默认文案，自定义文案保留。
 - App 级隐私清单改为在 `ios.privacyManifests` 显式声明（UserDefaults CA92.1/1C8F.1、FileTimestamp C617.1、SystemBootTime 35F9.1，不跟踪）；依赖库清单随包合并（Release 包已核对 React/Expo 各模块/Agora/自有模块均在包内）。DooPushSDK 未自带清单，其 UserDefaults 由 App 级覆盖。
 - 待办：
-  - [ ] 下次出 Release 包时核对包内 Info.plist 与各 lproj（本次仅在 Linux 副本 prebuild 核对生成结果）
+  - [x] 下次出 Release 包时核对包内 Info.plist 与各 lproj（rel19 核对通过：6 条权限说明、10 个 lproj、隐私清单均正确）
+  - [x] Release 包残留 `_expo._tcp`：dev-launcher 剥离脚本未声明输入，Xcode 在 Info.plist 生成前执行它，删完又被覆盖。`plugins/with-release-strip-order.js` 把生成后的 Info.plist 设为输入，并把该阶段移到 Copy Files 之后（Info.plist 生成依赖嵌入 shareExtension，放在其前会形成依赖环）
   - [ ] App Store Connect「App 隐私」问卷按实际收集数据填写（账号信息、用户内容、照片/音频、位置、设备 ID 用于推送等，均不用于跟踪）
