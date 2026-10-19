@@ -1,0 +1,10 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "DooTask 需要存取您的相機，以便您掃描 QR 碼、拍攝照片或進行視訊會議。",
+    "NSMicrophoneUsageDescription": "DooTask 需要存取您的麥克風，以便您錄製語音訊息或進行音訊與視訊會議。",
+    "NSPhotoLibraryUsageDescription": "DooTask 需要存取您的照片，以便您查看最近的照片、選擇並傳送圖片或影片。",
+    "NSPhotoLibraryAddUsageDescription": "DooTask 需要存取您的照片，以便您儲存圖片或影片。",
+    "NSLocationWhenInUseUsageDescription": "DooTask 需要在使用期間存取您的位置，以便您進行定位簽到。",
+    "NSLocalNetworkUsageDescription": "DooTask 需要存取區域網路，以便連線至部署在區域網路內的伺服器。"
+  }
+}

@@ -31,7 +31,15 @@ function readVersion(): { version: string; code: number } {
 
 const { version, code } = readVersion();
 
-const usage = (text: string) => `$(PRODUCT_NAME) ${text}`;
+/**
+ * iOS 权限说明：每种语言一个 locales/<lang>.json（生成 <lang>.lproj/InfoPlist.strings），
+ * Info.plist 默认值取简体中文。.strings 不展开 $(PRODUCT_NAME)，文案里直接写 DooTask。
+ * 语言与 CFBundleLocalizations 保持一致。
+ */
+const LOCALES = ['zh-Hans', 'zh-Hant', 'zh-HK', 'en', 'ja', 'ko', 'de', 'fr', 'id', 'ru'] as const;
+const usage: Record<string, string> = JSON.parse(
+  fs.readFileSync(path.resolve(__dirname, 'locales/zh-Hans.json'), 'utf8'),
+).ios;
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
@@ -53,21 +61,30 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
       // 声明支持的语言，系统菜单（复制/翻译等）才会跟随手机语言；缺省时只按英文显示
-      CFBundleLocalizations: ['zh-Hans', 'zh-Hant', 'zh-HK', 'en', 'ja', 'ko', 'de', 'fr', 'id', 'ru'],
+      CFBundleLocalizations: [...LOCALES],
       NSAppTransportSecurity: {
         NSAllowsArbitraryLoads: true,
         NSAllowsLocalNetworking: true,
       },
       UIBackgroundModes: ['audio'],
-      NSCameraUsageDescription: usage('需要访问您的相机，以便您可以扫描二维码、拍摄照片或进行视频会议。'),
-      NSMicrophoneUsageDescription: usage('需要访问您的麦克风，以便您可以录制语音交流。'),
-      NSPhotoLibraryUsageDescription: usage('需要访问您的相册，以便您可以选择和发送图片。'),
-      NSPhotoLibraryAddUsageDescription: usage('需要访问您的相册，以便您可以保存图片。'),
-      NSLocationWhenInUseUsageDescription: usage('需要在使用期间访问您的位置，以便您可以进行定位签到。'),
-      NSContactsUsageDescription: usage('需要您的同意，才能访问通讯录。'),
-      NSCalendarsUsageDescription: usage('需要您的同意，才能访问日历。'),
+      // 相机、麦克风、相册、定位、本地网络（自部署服务器在局域网时，WebView 访问会触发授权）。
+      // 本地网络说明须为自定义文案：expo-dev-launcher 只在 Release 构建中删除它自己的默认文案。
+      ...usage,
+    },
+    // App 级隐私清单。依赖库各自的清单随包合并；DooPushSDK（源码 Pod）未自带清单，
+    // 其 UserDefaults 用途由此处 CA92.1 覆盖；1C8F.1 为分享扩展共享的 App Group。
+    privacyManifests: {
+      NSPrivacyTracking: false,
+      NSPrivacyTrackingDomains: [],
+      NSPrivacyCollectedDataTypes: [],
+      NSPrivacyAccessedAPITypes: [
+        { NSPrivacyAccessedAPIType: 'NSPrivacyAccessedAPICategoryUserDefaults', NSPrivacyAccessedAPITypeReasons: ['CA92.1', '1C8F.1'] },
+        { NSPrivacyAccessedAPIType: 'NSPrivacyAccessedAPICategoryFileTimestamp', NSPrivacyAccessedAPITypeReasons: ['C617.1'] },
+        { NSPrivacyAccessedAPIType: 'NSPrivacyAccessedAPICategorySystemBootTime', NSPrivacyAccessedAPITypeReasons: ['35F9.1'] },
+      ],
     },
   },
+  locales: Object.fromEntries(LOCALES.map((lang) => [lang, `./locales/${lang}.json`])),
   android: {
     package: 'com.dootask.task',
     versionCode: code,
@@ -98,7 +115,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     [
       'expo-location',
       {
-        locationWhenInUsePermission: usage('需要在使用期间访问您的位置，以便您可以进行定位签到。'),
+        locationWhenInUsePermission: usage.NSLocationWhenInUseUsageDescription,
         locationAlwaysPermission: false,
         locationAlwaysAndWhenInUsePermission: false,
         locationFullAccuracyPermission: false,
@@ -134,16 +151,16 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     [
       'expo-camera',
       {
-        cameraPermission: usage('需要访问您的相机，以便您可以扫描二维码、拍摄照片或进行视频会议。'),
-        microphonePermission: usage('需要访问您的麦克风，以便您可以录制语音交流。'),
+        cameraPermission: usage.NSCameraUsageDescription,
+        microphonePermission: usage.NSMicrophoneUsageDescription,
         barcodeScannerEnabled: true,
       },
     ],
     [
       'expo-media-library',
       {
-        photosPermission: usage('需要访问您的相册，以便您可以查看最近照片、选择和发送图片。'),
-        savePhotosPermission: usage('需要访问您的相册，以便您可以保存图片。'),
+        photosPermission: usage.NSPhotoLibraryUsageDescription,
+        savePhotosPermission: usage.NSPhotoLibraryAddUsageDescription,
         granularPermissions: ['photo', 'video'],
       },
     ],

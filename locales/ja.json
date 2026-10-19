@@ -1,0 +1,10 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "QRコードのスキャン、写真の撮影、ビデオ会議のために、DooTask がカメラにアクセスする必要があります。",
+    "NSMicrophoneUsageDescription": "音声メッセージの録音や音声・ビデオ会議のために、DooTask がマイクにアクセスする必要があります。",
+    "NSPhotoLibraryUsageDescription": "最近の写真の表示や、写真・動画の選択と送信のために、DooTask が写真ライブラリにアクセスする必要があります。",
+    "NSPhotoLibraryAddUsageDescription": "写真や動画を保存するために、DooTask が写真ライブラリに追加する許可が必要です。",
+    "NSLocationWhenInUseUsageDescription": "位置情報によるチェックインのために、アプリの使用中に DooTask が位置情報にアクセスする必要があります。",
+    "NSLocalNetworkUsageDescription": "ローカルネットワーク内に設置されたサーバーに接続するために、DooTask がローカルネットワークにアクセスする必要があります。"
+  }
+}

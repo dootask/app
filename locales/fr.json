@@ -1,0 +1,10 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "DooTask a besoin d'accéder à votre appareil photo pour scanner des codes QR, prendre des photos et participer à des visioconférences.",
+    "NSMicrophoneUsageDescription": "DooTask a besoin d'accéder à votre micro pour enregistrer des messages vocaux et participer à des réunions audio et vidéo.",
+    "NSPhotoLibraryUsageDescription": "DooTask a besoin d'accéder à votre photothèque pour afficher les photos récentes, et sélectionner et envoyer des photos ou des vidéos.",
+    "NSPhotoLibraryAddUsageDescription": "DooTask a besoin de votre autorisation pour ajouter des photos ou des vidéos à votre photothèque afin que vous puissiez les enregistrer.",
+    "NSLocationWhenInUseUsageDescription": "DooTask a besoin d'accéder à votre position lorsque vous utilisez l'app afin que vous puissiez pointer par géolocalisation.",
+    "NSLocalNetworkUsageDescription": "DooTask a besoin d'accéder à votre réseau local pour se connecter aux serveurs déployés sur votre réseau local."
+  }
+}

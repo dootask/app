@@ -1,0 +1,10 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "DooTask memerlukan akses ke kamera Anda untuk memindai kode QR, mengambil foto, dan mengikuti rapat video.",
+    "NSMicrophoneUsageDescription": "DooTask memerlukan akses ke mikrofon Anda untuk merekam pesan suara dan mengikuti rapat audio dan video.",
+    "NSPhotoLibraryUsageDescription": "DooTask memerlukan akses ke galeri foto Anda untuk melihat foto terbaru serta memilih dan mengirim foto atau video.",
+    "NSPhotoLibraryAddUsageDescription": "DooTask memerlukan izin untuk menambahkan foto atau video ke galeri foto Anda agar Anda dapat menyimpannya.",
+    "NSLocationWhenInUseUsageDescription": "DooTask memerlukan akses ke lokasi Anda saat aplikasi digunakan agar Anda dapat melakukan absensi berbasis lokasi.",
+    "NSLocalNetworkUsageDescription": "DooTask memerlukan akses ke jaringan lokal Anda untuk terhubung ke server yang dipasang di jaringan lokal."
+  }
+}

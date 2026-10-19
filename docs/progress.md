@@ -102,9 +102,9 @@ AI 无法自动完成的验证集中在这里，详细步骤见 `docs/page-compa
 
 **已知差异 / 二期前复核**
 - [x] Android getLatestPhoto 使用 DATE_TAKEN，旧壳为 DATE_ADDED，需补原生查询（🟡）— 2026-10-18 P2 B05 已改为原生 DATE_ADDED（e3b7eb8）
-- [ ] iOS `voip` 后台模式：二期接 DooPush 时结合 PushKit 复核，否则上架可能被拒
+- [x] iOS `voip` 后台模式：二期接 DooPush 时结合 PushKit 复核，否则上架可能被拒 — 2026-10-19 未用 PushKit/CallKit，已去掉 voip，只保留 audio
 - [x] Android 会议错误弹窗按钮为系统默认 “OK”，需本地化 — 2026-10-18 会议/扫码提示框显式传按钮（会议按语言 确定/確定/OK）
-- [ ] 二期：DooPush 接入、开启 expo-notifications 远程推送与 aps-environment
+- [x] 二期：DooPush 接入、开启 expo-notifications 远程推送与 aps-environment — 2026-10-19 iOS 真机通过，Android 厂商通道待凭证
 
 ## 记录
 
@@ -290,3 +290,13 @@ AI 无法自动完成的验证集中在这里，详细步骤见 `docs/page-compa
 - iOS：`aps-environment=production`、`remote-notification`；去掉未使用的 `voip` 后台模式。
 - ✅ rel15 iPad 真机简测通过：DooPush 控制台推送（APNs 密钥有效）、设备注册上报、真实聊天消息推送、后台点击与冷启动点击进入会话。
 - 待办：Android 厂商通道凭证（FCM/华为/荣耀/小米/OPPO/vivo/魅族）未配置；前台横幅表现留到最终回归。
+
+## 上架准备：隐私清单与权限说明（2026-10-19）
+
+- 权限说明按语言放在 `locales/<lang>.json`（10 种语言，与 CFBundleLocalizations 一致），prebuild 生成 `<lang>.lproj/InfoPlist.strings`；Info.plist 默认值与各插件（相机/相册/定位）参数统一取简体中文文件，`.strings` 不展开 `$(PRODUCT_NAME)`，文案直接写 DooTask。
+- 去掉未使用的通讯录、日历权限（Release 包二进制核对：未链接 Contacts/EventKit；仅 expo-video 链接 MediaPlayer 用于播放控制，不需要媒体库权限）。
+- 本地网络改为 DooTask 自己的说明（自部署服务器在局域网时 WebView 访问会触发授权）；此前 Release 包里残留 expo-dev-launcher 的英文默认文案。dev-launcher 的 Release 剥离脚本只删 `_expo._tcp` 和它自己的默认文案，自定义文案保留。
+- App 级隐私清单改为在 `ios.privacyManifests` 显式声明（UserDefaults CA92.1/1C8F.1、FileTimestamp C617.1、SystemBootTime 35F9.1，不跟踪）；依赖库清单随包合并（Release 包已核对 React/Expo 各模块/Agora/自有模块均在包内）。DooPushSDK 未自带清单，其 UserDefaults 由 App 级覆盖。
+- 待办：
+  - [ ] 下次出 Release 包时核对包内 Info.plist 与各 lproj（本次仅在 Linux 副本 prebuild 核对生成结果）
+  - [ ] App Store Connect「App 隐私」问卷按实际收集数据填写（账号信息、用户内容、照片/音频、位置、设备 ID 用于推送等，均不用于跟踪）

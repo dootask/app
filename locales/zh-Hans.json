@@ -1,0 +1,10 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "DooTask 需要访问您的相机，以便您扫描二维码、拍摄照片或进行视频会议。",
+    "NSMicrophoneUsageDescription": "DooTask 需要访问您的麦克风，以便您录制语音消息或进行音视频会议。",
+    "NSPhotoLibraryUsageDescription": "DooTask 需要访问您的相册，以便您查看最近照片、选择并发送图片或视频。",
+    "NSPhotoLibraryAddUsageDescription": "DooTask 需要访问您的相册，以便您保存图片或视频。",
+    "NSLocationWhenInUseUsageDescription": "DooTask 需要在使用期间访问您的位置，以便您进行定位签到。",
+    "NSLocalNetworkUsageDescription": "DooTask 需要访问本地网络，以便连接部署在局域网内的服务器。"
+  }
+}
