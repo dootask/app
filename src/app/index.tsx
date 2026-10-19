@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
-import { ActivityIndicator, BackHandler, Platform, View } from 'react-native';
+import { ActivityIndicator, BackHandler, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { getLocales } from 'expo-localization';
 import { useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -19,7 +20,7 @@ export default function MainPage() {
   const ref = useRef<BridgeWebViewHandle>(null);
   const webLoadedRef = useRef(false);
   const [nativeReady, setNativeReady] = useState(false);
-  const webUrl = useLocalWebReady();
+  const { url: webUrl, failed: webFailed, retry: retryWeb } = useLocalWebReady();
   useDeepLinkHandler(useCallback(() => webLoadedRef.current ? ref.current?.page ?? null : null, []));
 
   useEffect(() => {
@@ -32,9 +33,33 @@ export default function MainPage() {
   }, []);
 
   if (!nativeReady || !webUrl) {
-    return <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}><ActivityIndicator /></View>;
+    return (
+      <View style={styles.center}>
+        {webFailed ? <WebServerFailed onRetry={retryWeb} /> : <ActivityIndicator />}
+      </View>
+    );
   }
   return <ReadyMainPage bridgeRef={ref} webLoadedRef={webLoadedRef} webUrl={webUrl} />;
+}
+
+const failedText = {
+  zh: { message: '本地服务启动失败', retry: '重试' },
+  hant: { message: '本機服務啟動失敗', retry: '重試' },
+  en: { message: 'Failed to start the local service', retry: 'Retry' },
+};
+
+/** 本地 Web 服务多次重试仍失败（如端口被占用）时给出提示与手动重试，避免停在加载圈 */
+function WebServerFailed({ onRetry }: { onRetry(): void }) {
+  const tag = getLocales()[0]?.languageTag ?? '';
+  const text = /^zh[-_]?(hant|tw|hk|mo)/i.test(tag) ? failedText.hant : /^zh/i.test(tag) || !tag ? failedText.zh : failedText.en;
+  return (
+    <>
+      <Text style={styles.failedText}>{text.message}</Text>
+      <Pressable accessibilityRole="button" onPress={onRetry} style={({ pressed }) => [styles.retryButton, pressed && { opacity: 0.6 }]}>
+        <Text style={styles.retryText}>{text.retry}</Text>
+      </Pressable>
+    </>
+  );
 }
 
 // 就绪后再挂载页面生命周期，避免等待服务时提前消费首次 resume。
@@ -106,3 +131,10 @@ function ReadyMainPage({ bridgeRef: ref, webLoadedRef, webUrl }: {
     </KeyboardInset>
   );
 }
+
+const styles = StyleSheet.create({
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24 },
+  failedText: { fontSize: 15, color: '#8a8a8a', textAlign: 'center' },
+  retryButton: { paddingHorizontal: 28, paddingVertical: 10, borderRadius: 20, backgroundColor: '#8BCF70' },
+  retryText: { fontSize: 15, color: '#fff', fontWeight: '500' },
+});

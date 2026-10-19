@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { BackHandler, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { BackHandler, Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, Stack, useFocusEffect, useIsFocused, useLocalSearchParams, useNavigation } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { WebViewNavigation } from 'react-native-webview/lib/WebViewTypes';
@@ -173,11 +173,11 @@ export default function WebPage() {
           style={styles.navButton}
           onPress={closePage}
         >
-          <Text allowFontScaling={false} style={[styles.backIcon, { color: theme.navColor }]}>‹</Text>
+          <Image source={require('../../assets/navbar/web_back.png')} style={[styles.navIcon, { tintColor: theme.navColor }]} />
         </Pressable>
         <Text numberOfLines={1} allowFontScaling={false} accessibilityRole="header" style={[styles.title, { color: theme.navColor }]}>{title}</Text>
         <Pressable accessibilityRole="button" accessibilityLabel="更多" accessibilityState={{ expanded: moreShow }} style={styles.navButton} onPress={() => setMoreShow(!moreShow)}>
-          <Text allowFontScaling={false} style={[styles.moreIcon, { color: theme.navColor }]}>•••</Text>
+          <Image source={require('../../assets/navbar/web_more.png')} style={[styles.navIcon, { tintColor: theme.navColor }]} />
         </Pressable>
       </View>
       {/* eeui softInputMode：nothing 不避让；resize（默认）/ pan / auto 均按 resize 处理（WebView 内 pan 与 resize 效果相近，前端无非默认调用） */}
@@ -241,8 +241,8 @@ const styles = StyleSheet.create({
   },
   navbar: { height: 48, flexDirection: 'row', alignItems: 'center' },
   navButton: { width: 56, height: 48, alignItems: 'center', justifyContent: 'center' },
-  backIcon: { fontSize: 38, lineHeight: 42 },
-  moreIcon: { fontSize: 18, letterSpacing: 2 },
+  // 图标取自 eeui 字体（ios-arrow-back / ios-more，iconSize 40/750 屏宽），用图片避免字符宽度随系统字体变化而换行
+  navIcon: { width: 22, height: 22 },
   // 导航栏与菜单 Text 均 allowFontScaling=false：对齐 eeui 原生 header 的固定字号
   title: { flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '600' },
   progress: { position: 'absolute', top: 0, left: 0, height: 2 },

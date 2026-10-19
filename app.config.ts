@@ -161,6 +161,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     'expo-screen-orientation',
     './plugins/with-device-orientation',
     './plugins/with-legacy-launcher',
+    './plugins/with-legacy-splash',
   ],
   experiments: {
     typedRoutes: true,

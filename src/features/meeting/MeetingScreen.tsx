@@ -4,7 +4,7 @@ import type { ImageSourcePropType } from 'react-native';
 import { Stack, router, useFocusEffect, useLocalSearchParams, usePreventRemove } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { RenderModeType, RtcSurfaceView, RtcTextureView, VideoSourceType } from 'react-native-agora';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { meetingEvent } from './events';
 import type { Participant } from './participants';
@@ -128,7 +128,7 @@ function LiveMeeting({ session }: { session: MeetingSession }) {
             {!!loadingLabel && <ActivityIndicator size="small" color="#cbd5e1" accessibilityLabel={loadingLabel} />}
           </View>
         </View>
-        <Text style={styles.count}>{snapshot.participants.length}</Text>
+        {snapshot.participants.length > 1 && <Text style={styles.count}>{snapshot.participants.length}</Text>}
       </View>
       <FlatList
         key={columns} data={snapshot.participants} numColumns={columns}
@@ -161,9 +161,12 @@ export default function MeetingScreen() {
   const { meetingPage, meetingRequest } = useLocalSearchParams();
   const [session] = useState(() => findMeeting(meetingPage, meetingRequest));
   const strings = session?.strings ?? meetingStrings('');
+  // 不用 SafeAreaView：iOS 首次弹出全屏模态时它尚未挂到窗口，量到的安全区为 0，标题会顶进状态栏；
+  // 根部 Provider 的窗口安全区始终可用
+  const insets = useSafeAreaInsets();
   return (
-    <SafeAreaView style={styles.root}>
-      <Stack.Screen options={{ headerShown: false, presentation: 'fullScreenModal', gestureEnabled: false }} />
+    <View style={[styles.root, { paddingTop: insets.top, paddingBottom: insets.bottom, paddingLeft: insets.left, paddingRight: insets.right }]}>
+      <Stack.Screen options={{ headerShown: false, gestureEnabled: false }} />
       <StatusBar style="light" />
       {session ? <LiveMeeting session={session} /> : (
         <View style={styles.expired}>
@@ -171,7 +174,7 @@ export default function MeetingScreen() {
           <Pressable accessibilityRole="button" onPress={closeRoute} style={styles.expiredButton}><Text style={styles.white}>{strings.close}</Text></Pressable>
         </View>
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 

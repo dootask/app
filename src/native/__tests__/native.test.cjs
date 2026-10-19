@@ -167,7 +167,7 @@ test('开发地址直接就绪且不读取原生服务', () => {
     '../../modules/web-server': { getWebServerModule() { throw new Error('开发模式不能读取原生模块'); } },
     '../bridge/store': {}, '../config': { DEV_WEB_URL: 'https://dev.example.test' },
   });
-  assert.equal(useLocalWebReady(), 'https://dev.example.test');
+  assert.equal(useLocalWebReady().url, 'https://dev.example.test');
   effects.forEach((fn) => fn());
 });
 
@@ -179,7 +179,7 @@ test('前台检查：存活时复用、停止时重启、卸载时释放监听',
   let starts = 0;
   let url = null;
   const { useLocalWebReady } = load('webServer.ts', {
-    react: { useState: (value) => [value, (next) => { url = next; }], useEffect: (fn) => effects.push(fn) },
+    react: { useState: (value) => [value, value === null ? (next) => { url = next; } : () => {}], useEffect: (fn) => effects.push(fn) },
     'react-native': { AppState: { addEventListener(event, handler) {
       listener = handler; return { remove() { removed = true; } };
     } } },
@@ -199,6 +199,36 @@ test('前台检查：存活时复用、停止时重启、卸载时释放监听',
   listener('background'); await flush(); assert.equal(starts, 1);
   listener('active'); await flush(); assert.equal(starts, 2);
   cleanup(); assert.equal(removed, true);
+});
+
+test('启动重试仍失败：标记失败、手动重试后恢复', async () => {
+  const clock = makeClock();
+  const effects = [];
+  const state = [];
+  let fail = true;
+  const { useLocalWebReady } = load('webServer.ts', {
+    react: {
+      useState: (value) => { const index = state.length; state.push(value); return [value, (next) => { state[index] = typeof next === 'function' ? next(state[index]) : next; }]; },
+      useEffect: (fn) => effects.push(fn),
+    },
+    'react-native': { AppState: { addEventListener: () => ({ remove() {} }) } },
+    '../../modules/web-server': { getWebServerModule: () => ({
+      async start(port) { if (fail) throw new Error('端口被占用'); return { port }; },
+      async isRunning() { return !fail; },
+    }) },
+    '../bridge/store': { bridgeStore: makeStore() },
+    '../config': { DEV_WEB_URL: '', MAIN_WEB_URL: 'http://localhost:22223/', LOCAL_WEB_ORIGIN: 'http://localhost:22223', LOCAL_WEB_PORT: 22223 },
+  }, { ...clock.globals, console: { warn() {} } });
+  const { retry } = useLocalWebReady();
+  effects[0]();
+  await clock.advance(3000); await flush();
+  assert.deepEqual(state.slice(0, 2), [null, true]);
+  fail = false;
+  retry();
+  assert.equal(state[2], 1);
+  effects[0]();
+  await flush();
+  assert.deepEqual(state.slice(0, 2), ['http://localhost:22223/', false]);
 });
 
 test('深链：初始与后续事件去重、等待页面及两秒、保留测试路由、卸载清理', async () => {

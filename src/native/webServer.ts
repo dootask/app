@@ -32,19 +32,30 @@ export function ensureWebServer(): Promise<string> {
   return startup;
 }
 
+export interface LocalWebState {
+  url: string | null;
+  /** 带重试的启动流程仍失败：界面应提示并允许手动重试，而不是一直转圈 */
+  failed: boolean;
+  retry(): void;
+}
+
 /** 仅在服务就绪后给出主页面地址；开发地址模式完全跳过原生服务。 */
-export function useLocalWebReady(): string | null {
+export function useLocalWebReady(): LocalWebState {
   const [url, setUrl] = useState<string | null>(DEV_WEB_URL || null);
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     if (DEV_WEB_URL) return;
     let disposed = false;
     const start = async () => {
+      if (!disposed) setFailed(false);
       try {
         await ensureWebServer();
         if (!disposed) setUrl(MAIN_WEB_URL);
       } catch (error) {
         if (!disposed) {
           setUrl(null);
+          setFailed(true);
           console.warn('[native/webServer] 本地 Web 服务启动失败', error);
         }
       }
@@ -68,6 +79,6 @@ export function useLocalWebReady(): string | null {
       disposed = true;
       subscription.remove();
     };
-  }, []);
-  return url;
+  }, [attempt]);
+  return { url, failed, retry: () => setAttempt((value) => value + 1) };
 }

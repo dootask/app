@@ -16,7 +16,6 @@ import { APP_VERSION_NAME } from '../config';
 import { dispatchCall } from './dispatcher';
 import { buildSnapshot, getInjectedScript, registerPage, unregisterPage, type PageHandle } from './pages';
 import { parseBridgeCall, type PageInfo } from './protocol';
-import { bridgeStore } from './store';
 import { useThemeName } from './hooks';
 import { DEFAULT_OVERRIDES, getPageWebViewState } from './modules/webview/state';
 
@@ -76,19 +75,10 @@ export const BridgeWebView = forwardRef<BridgeWebViewHandle, BridgeWebViewProps>
   const themeName = useThemeName();
   const [nativePreferences, setNativePreferences] = useState(DEFAULT_OVERRIDES);
 
-  // 启动脚本带快照；同步值变化时（防抖）刷新，保证页面重载后拿到最新快照
+  // 启动脚本带快照，只在页面开始（重新）加载时刷新，保证重载后拿到最新快照。
+  // 不能随同步值变化随时刷新：iOS 每次更新启动脚本都会移除并重新注册消息通道，
+  // 期间网页发来的桥接调用会丢失（冷启动后首次进地图页，getGeolocation 因此丢失、一直转圈）。
   const [injected, setInjected] = useState(() => getInjectedScript(info));
-  useEffect(() => {
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const unsubscribe = bridgeStore.subscribe(() => {
-      if (timer) clearTimeout(timer);
-      timer = setTimeout(() => setInjected(getInjectedScript(info)), 300);
-    });
-    return () => {
-      unsubscribe();
-      if (timer) clearTimeout(timer);
-    };
-  }, [info]);
 
   useEffect(() => {
     const page = registerPage(info, (js) => webviewRef.current?.injectJavaScript(js));
@@ -126,6 +116,21 @@ export const BridgeWebView = forwardRef<BridgeWebViewHandle, BridgeWebViewProps>
     const page = pageRef.current;
     if (call && page) dispatchCall(page, call);
   }, []);
+
+  const loadingUrl = useRef('');
+  const onLoadStart = useCallback<NonNullable<WebViewProps['onLoadStart']>>(
+    (e) => {
+      // 只改 hash 的页内跳转仍是同一文档，刷新启动脚本只会白白重置消息通道
+      const next = e.nativeEvent.url || '';
+      const prev = loadingUrl.current;
+      loadingUrl.current = next;
+      const hashOnly = next !== prev && next.split('#')[0] === prev.split('#')[0];
+      if (!hashOnly) setInjected(getInjectedScript(info));
+      rest.onLoadStart?.(e);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [info, rest.onLoadStart],
+  );
 
   // 页面加载完成后用最新快照重置一次，覆盖启动脚本注入时可能过期的数据
   const onLoadEnd = useCallback<NonNullable<WebViewProps['onLoadEnd']>>(
@@ -204,6 +209,7 @@ export const BridgeWebView = forwardRef<BridgeWebViewHandle, BridgeWebViewProps>
       injectedJavaScriptBeforeContentLoaded={injected}
       injectedJavaScriptBeforeContentLoadedForMainFrameOnly
       onMessage={onMessage}
+      onLoadStart={onLoadStart}
       onLoadEnd={onLoadEnd}
       onOpenWindow={onOpenWindow}
       onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}

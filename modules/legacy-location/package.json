@@ -1,0 +1,8 @@
+{
+  "name": "dootask-legacy-location",
+  "version": "1.0.0",
+  "description": "DooTask Android 系统定位（对齐旧 eeui LocationHelper，不依赖 Google Play 服务）",
+  "main": "index.ts",
+  "private": true,
+  "license": "MIT"
+}

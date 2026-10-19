@@ -267,3 +267,12 @@ AI 无法自动完成的验证集中在这里，详细步骤见 `docs/page-compa
 - 分享扩展：还原旧版样式——iOS 自绘 70pt 顶栏（文字取消/发送、居中标题）、全宽 plain 列表（行高 60、42pt 圆头像、旧版单选/目录图标）、居中 HUD、失败刷新按钮；旧资源放在 `ShareAssets.xcassets`，由 with-share 插件登记到扩展 Resources。Android 同步改回全宽普通列表。
 - 会议：控制栏使用旧版 meeting PNG；扬声器按钮用新增 `meeting_speaker_on/off.png`（旧版无此按钮，图标同步放到 mobile 旧资源目录）；标题后显示加入/重连 loading，错误提示改为自动消失的浮层；成员卡片麦克风/摄像头关闭图标分开显示。最小化悬浮条按旧版尺寸与深浅色。
 - ✅ 双端 Release 构建通过，IPA（debugging 签名）真机安装验收通过。
+
+## 真机修复第三轮（2026-10-19）
+
+- iOS 地图签到冷启动后首次进入一直转圈：react-native-webview 在 iOS 上每次更新 `injectedJavaScriptBeforeContentLoaded` 都会移除并重新注册 `ReactNativeWebView` 消息通道，期间网页发来的桥接调用会丢失。BridgeWebView 原先随 bridgeStore 变化（防抖 300ms）刷新启动脚本，冷启动阶段同步值频繁变化，地图页的 `getGeolocation` 恰好落在空窗里。改为只在页面开始加载（`onLoadStart`，忽略仅 hash 变化）时刷新快照，`onLoadEnd` 仍用最新快照重置。
+- iOS 定位权限：首次弹框时请求可能以"未决定"返回，改为继续轮询等用户选择（权限阶段 60 秒上限，授权后再计 20 秒定位）；App 非 active 时延后回传结果，避免地图页 `alert` 弹不出卡住。
+- Android 定位：新增 `modules/legacy-location`，直接用系统 LocationManager（GPS + 网络，50 米门槛、30 秒内缓存），国内无 GMS 机型不再永远等不到结果。
+- 会议页：iOS 首次进入标题被状态栏遮挡，改用 `useSafeAreaInsets` 补内边距；Android 会议页以透明模态入栈，下层发起页保持挂载，参会人名字/头像回传不再丢失。
+- 其他：Android 启动图换回旧 eeui 咖啡杯（with-legacy-splash 插件）；子页导航栏返回/更多改用旧版图标；本地 Web 服务多次重试仍失败时显示提示与重试按钮；Android 键盘避让改为按键盘与自身底部的重叠量一步到位补 padding。
+- ✅ rel10 双端 Release 构建（IPA / 正式签名 APK）真机验收通过：冷启动后快速进入定位签到、"下次询问"权限弹框均正常定位。
