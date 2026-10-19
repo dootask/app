@@ -276,3 +276,9 @@ AI 无法自动完成的验证集中在这里，详细步骤见 `docs/page-compa
 - 会议页：iOS 首次进入标题被状态栏遮挡，改用 `useSafeAreaInsets` 补内边距；Android 会议页以透明模态入栈，下层发起页保持挂载，参会人名字/头像回传不再丢失。
 - 其他：Android 启动图换回旧 eeui 咖啡杯（with-legacy-splash 插件）；子页导航栏返回/更多改用旧版图标；本地 Web 服务多次重试仍失败时显示提示与重试按钮；Android 键盘避让改为按键盘与自身底部的重叠量一步到位补 padding。
 - ✅ rel10 双端 Release 构建（IPA / 正式签名 APK）真机验收通过：冷启动后快速进入定位签到、"下次询问"权限弹框均正常定位。
+
+## iPad 简测（2026-10-19）
+
+- iPadOS 26 窗口化时红黄绿窗口控件改为紧凑样式：新增 `plugins/with-window-controls.js`，在 SceneDelegate 实现 `preferredWindowingControlStyle(for:)` 返回 `.minimal`（仅 iOS 26+ 生效）。
+- 横竖屏旋转、全屏 ↔ 窗口化后的安全区：对比测试了前端在窗口尺寸变化时重新获取安全区的修改（rel12）与不改前端（rel13），iPad 真机表现一致，前端不做改动。
+- ✅ rel13 iPad 真机简测通过（iPad Pro 11 寸第 4 代）；细项留到最终回归测试。
