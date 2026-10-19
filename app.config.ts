@@ -184,8 +184,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       {
         // App ID / App Key 在 src/config.ts 中由 JS 调用 DooPush.configure 传入
         ios: { mode: 'production' },
-        // Android 厂商通道待凭证到位后在此配置（services 文件不进仓库）
-        android: { vendors: {} },
+        // Android 厂商通道：services 文件不进仓库，由构建机环境变量指定（绝对路径），未指定则不启用
+        android: {
+          vendors: {
+            ...(process.env.DOOPUSH_HMS_SERVICES_FILE && { hms: { agconnectServicesFile: process.env.DOOPUSH_HMS_SERVICES_FILE } }),
+          },
+        },
       },
     ],
     './plugins/with-share',
