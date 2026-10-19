@@ -51,7 +51,7 @@
 | keyboardHide() | — | Keyboard.dismiss + WebView blur | ✅ X1 |
 | copyText(text) | — | expo-clipboard | ✅ X1 |
 | openScaner({}, cb) | → `{pageName:'scanPage', status:'create'}` → `{status:'success', text, source, format, result}` → `{pageName:'scanPage', status:'destroy'}`；支持 title / desc / continuous | 扫码页（expo-camera），手电筒回调 openLight / offLight | ✅ X2（`src/features/media`；待集成 import 与设备验证） |
-| checkUpdate() | — | 一期为空实现 | ✅ X1（按一期范围保留空实现） |
+| checkUpdate(callback?) | 回调 `{status:'update',version,url}` / `{status:'latest',version}` / `{status:'error'}` | iOS 查 App Store lookup、Android 查 download.dootask.com/release/index.json，只查询不弹窗；无回调时为空操作（兼容旧调用） | ✅ 2026-10-19 检查更新 |
 | shakeToEditOn() / shakeToEditOff() | — | iOS 摇动撤销；Android 无操作 | ✅ K09（iOS 主线程设置 applicationSupportsShakeToEdit，待 V04 设备验收） |
 | getSafeAreaInsets(cb) | → `{status:'success', top, bottom, width, height}` | 旧 iOS 返回 UIKit point，Android 返回物理像素；详见旧 DeviceUtil.m:726 / eeuiScreenUtils.java:82 | ✅ X1 |
 | getDeviceInfo(cb) | → `{status:'success', manufacturer, brand, model, modelName, deviceName, systemName, systemVersion}` | expo-device；Android 和 iOS 16+ 的 deviceName 与旧实现一致返回空串 | ✅ X1 |

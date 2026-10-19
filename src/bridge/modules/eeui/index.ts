@@ -7,6 +7,7 @@ import { registerModule } from '../../dispatcher';
 import { getDeviceInfo, getSafeAreaInsets } from './device';
 import { openWeb } from './openWeb';
 import { showToast } from './ToastHost';
+import { checkAppUpdate } from './update';
 
 // 与旧壳的应用级 idleTimerDisabled 对应，避免影响 Expo 开发工具的常亮锁。
 const KEEP_AWAKE_TAG = 'dootask.eeui';
@@ -55,8 +56,10 @@ registerModule('eeui', {
     return Clipboard.setStringAsync(String(text ?? ''));
   },
 
-  checkUpdate() {
-    // 一期保留接口，更新由应用商店处理。
+  checkUpdate(page, callbackRef: unknown) {
+    // 只查询不弹窗：结果交给前端用 $A.modalConfirm 提示（多语言），无回调时仅为兼容旧调用
+    if (!callbackRef) return;
+    return checkAppUpdate().then((result) => page.callback(callbackRef, result));
   },
 
   shakeToEditOn() {

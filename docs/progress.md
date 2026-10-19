@@ -71,7 +71,7 @@ AI 无法自动完成的验证集中在这里，详细步骤见 `docs/page-compa
 - [x] P2 K09 iOS shakeToEditOn/Off 切换 applicationSupportsShakeToEdit（Android 无此能力，空实现同旧壳）
 - [x] P2 S08 原生 isFullscreen（Android 分屏/PiP 为 false；iOS 比较窗口与屏幕），尺寸/前后台变化时刷新桥状态；模拟器双端返回 true
 - [x] P2 B05 Android 最新照片按 MediaStore DATE_ADDED 取（对齐旧壳），created 为秒；模拟器验证通过
-- [ ] P2 仅记录、待真机对照决定：T05 回弹/overscroll（新壳显式关闭，比旧壳更严）、L03 后台快照、L08 Web 进程崩溃后直接 reload（旧 iOS 先提示）、B08 检查更新空实现（有意差异，二期商店上架时再定）
+- [ ] P2 仅记录、待真机对照决定：T05 回弹/overscroll（新壳显式关闭，比旧壳更严）、L03 后台快照、L08 Web 进程崩溃后直接 reload（旧 iOS 先提示）、~~B08 检查更新空实现~~（2026-10-19 已实现，见下方「检查更新」）
 
 **需真机 / 手动触发**
 - [ ] 真实会议通话（前端会议入口取 token）：多人视频网格、最小化悬浮条、后台语音、Android 保活通知、划掉任务后释放引擎
@@ -301,3 +301,10 @@ AI 无法自动完成的验证集中在这里，详细步骤见 `docs/page-compa
   - [x] 下次出 Release 包时核对包内 Info.plist 与各 lproj（rel19 核对通过：6 条权限说明、10 个 lproj、隐私清单均正确）
   - [x] Release 包残留 `_expo._tcp`：dev-launcher 剥离脚本未声明输入，Xcode 在 Info.plist 生成前执行它，删完又被覆盖。`plugins/with-release-strip-order.js` 把生成后的 Info.plist 设为输入，并把该阶段移到 Copy Files 之后（Info.plist 生成依赖嵌入 shareExtension，放在其前会形成依赖环）
   - [ ] App Store Connect「App 隐私」问卷按实际收集数据填写（账号信息、用户内容、照片/音频、位置、设备 ID 用于推送等，均不用于跟踪）
+
+## 检查更新（2026-10-19）
+
+- 壳侧 `eeui.checkUpdate(callback)`（`src/bridge/modules/eeui/update.ts`）：iOS 查 `itunes.apple.com/lookup?bundleId=…`（先设备地区、再默认地区），「立即更新」打开 `itms-apps://apps.apple.com/app/id<trackId>`；Android 读 `https://download.dootask.com/release/index.json`（`files.android.default` 拼下载地址），浏览器下载安装。只在官方版本高于本机时提示，失败静默。
+- 前端 `$A.eeuiAppCheckUpdate(manual)`：Expo 壳（`window.__eeuiBridge`）弹 `$A.modalConfirm`「发现新版本 / 以后再说 / 立即更新」，通用文案、无跳过此版本、无强制更新；旧 eeui 壳仍走原 `checkUpdate()`。每天回前台自动检查一次；设置 →「版本」右侧「检查更新」手动检查（提示已是最新 / 检查失败）。
+  - [ ] 真机核对：iOS 跳转 App Store、Android 浏览器下载 apk、设置页手动检查三种结果
+

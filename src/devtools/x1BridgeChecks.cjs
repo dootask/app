@@ -36,6 +36,7 @@ function createHarness() {
     'expo-device': { manufacturer: 'Vendor', brand: 'Brand', modelId: 'iPhone17,1', modelName: 'Phone Model', deviceName: '设备名', osName: 'iOS', osVersion: '18.0' },
     'expo-application': { nativeApplicationVersion: '1.9.66', nativeBuildVersion: '10966' },
     'expo-constants': { default: {} },
+    'expo-localization': { getLocales: () => [{ regionCode: 'CN' }] },
     'expo-clipboard': { setStringAsync: async (text) => { calls.clipboard = text; } },
     'expo-keep-awake': {
       activateKeepAwakeAsync: async (tag) => calls.awake.push(['on', tag]),
