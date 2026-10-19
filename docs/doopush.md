@@ -29,7 +29,7 @@
 
 收到 `delUmengAlias`：调同一接口 `action=remove`，带 `device_id`。
 
-推送载荷顶层自定义字段：`dialog_id`、`msg_id`（字符串）。点击通知后壳调用网页 `window.__onNotificationClick({dialog_id, msg_id})`，前端打开对应会话。
+推送载荷：DooPush 的 `payload` 只接受 `action`/`url`/`data` 和厂商参数，其他键会被丢弃，所以业务字段放在 `payload.data`（JSON 字符串，如 `{"dialog_id":"1","msg_id":"2"}`），设备端收到的是顶层的 `data` 键。iOS 点击从 expo-notifications 响应的 `trigger.payload`（完整 userInfo，冷启动也可取）读取；`content.data` 只含 Expo 格式的 `body`，取不到。DooPush 点击事件作为兜底，两路按 `dialog_id:msg_id` 去重。点击通知后壳调用网页 `window.__onNotificationClick({dialog_id, msg_id})`，前端打开对应会话。
 
 ## 后端
 

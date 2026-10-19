@@ -107,7 +107,16 @@ interface ClickData {
 
 function pickClickData(data: unknown): ClickData | null {
   if (!data || typeof data !== 'object') return null;
-  const record = data as Record<string, unknown>;
+  let record = data as Record<string, unknown>;
+  // DooPush 只透传 data 字段：业务字段以 JSON 字符串放在 data 中
+  if (record.dialog_id === undefined && typeof record.data === 'string') {
+    try {
+      const parsed: unknown = JSON.parse(record.data);
+      if (parsed && typeof parsed === 'object') record = parsed as Record<string, unknown>;
+    } catch {
+      return null;
+    }
+  }
   const dialogId = String(record.dialog_id ?? '');
   if (!/^\d+$/.test(dialogId) || dialogId === '0') return null;
   return { dialog_id: dialogId, msg_id: String(record.msg_id ?? '') };
@@ -150,7 +159,9 @@ export function usePushClickHandler(getPage: () => PageHandle | null): void {
     };
     const fromResponse = (response: NotificationResponse | null) => {
       if (!response) return;
-      receive(response.notification.request.content.data);
+      // iOS 远程推送的 content.data 只取 Expo 格式的 body，DooPush 载荷在 trigger.payload（完整 userInfo）
+      const trigger = response.notification.request.trigger as { payload?: unknown } | null;
+      receive(trigger?.payload ?? response.notification.request.content.data);
       clearLastNotificationResponse();
     };
     const fromDooPush = (message: DooPushMessage) => receive(message.data);
