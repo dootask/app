@@ -88,7 +88,7 @@ AI 无法自动完成的验证集中在这里，详细步骤见 `docs/page-compa
 - [x] iOS 包内 Release（2026-10-18 模拟器）：修复 NWListener 同时指定 requiredLocalEndpoint 与 `on:` 端口导致「cannot override」、监听永远起不来（一直转圈）的问题；修复后监听 127.0.0.1:22223，首启出现隐私协议
 - [x] iOS Release 手动验收（2026-10-18 用户在模拟器完成）：同意隐私 → 「使用 SSO 登录」填服务器 → 登录 → 强杀后 `xcrun simctl openurl <设备> dootask:///manage/messenger` 冷启动 → 切后台再回来
 - [ ] Android Release 后台恢复时偶现消息页搜索框自动获得焦点、弹出键盘（仅出现一次，复测未复现，留意）
-- [ ] 本地 Web 服务启动失败时 `useLocalWebReady` 只 setUrl(null)，界面永远停在加载圈，无报错/重试（体验待补）
+- [x] 本地 Web 服务启动失败时 `useLocalWebReady` 只 setUrl(null)，界面永远停在加载圈，无报错/重试（体验待补）— 2026-10-19 失败后显示提示与重试按钮（d88c523）
 - [x] 从旧版 eeui 包覆盖升级（2026-10-18 模拟器）：先装线上 v1.9.66 eeui 包并登录，再覆盖安装新壳正式签名 Release（1.9.66/245），直接进入仪表盘，登录与服务器保留，不再弹隐私协议
 - [x] Android 正式签名：沿用旧 eeui keystore（不入库，构建机经环境变量注入），证书 SHA-256 与线上 v1.9.66 包一致，可覆盖升级
 - [ ] 真机覆盖升级复测（iOS 需同一 Bundle ID 自动签名包覆盖 App Store 版）
