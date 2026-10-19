@@ -20,7 +20,8 @@ import { isPageReady } from '../../native/deepLink';
  * 推送（二期 DooPush，替换旧壳友盟）
  *
  * 前端仍发 setUmengAlias / delUmengAlias：登录后注册 DooPush 设备并上报到 DooTask 服务器（api/push/device），
- * 退出登录时删除；服务器按设备 ID 通过 DooPush 推送。点击通知回调网页 __onNotificationClick 打开会话。
+ * 退出登录时删除；服务器按设备 ID 通过 DooPush 推送。同时上报推送 Token，供服务器「系统配置」模式
+ * 绑定到本站租户（共享通道）。点击通知回调网页 __onNotificationClick 打开会话。
  */
 
 interface AppMessage {
@@ -67,11 +68,12 @@ async function updateDevice() {
   const { deviceId, vendor } = await DooPush.register();
   if (!deviceId) return;
   const permission = await DooPush.checkPermissionStatus().catch(() => 'unknown');
+  const pushToken = await DooPush.getDeviceToken().catch(() => null);
   await report(message, {
     action: 'update',
     device_id: String(deviceId),
     vendor: String(vendor ?? ''),
-    unique_id: bridgeStore.getCachesString('appUniqueId'),
+    push_token: pushToken ?? '',
     // 对齐旧壳 WXEnvironment.deviceModel：iOS 为机型标识（如 iPhone14,2），Android 为 Build.MODEL
     device_model: (Platform.OS === 'ios' ? Device.modelId : Device.modelName) ?? '',
     app_version: String(APP_VERSION_CODE),
