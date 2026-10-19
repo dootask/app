@@ -305,6 +305,7 @@ AI 无法自动完成的验证集中在这里，详细步骤见 `docs/page-compa
 ## 检查更新（2026-10-19）
 
 - 壳侧 `eeui.checkUpdate(callback)`（`src/bridge/modules/eeui/update.ts`）：iOS 查 `itunes.apple.com/lookup?bundleId=…`（先设备地区、再默认地区），「立即更新」打开 `itms-apps://apps.apple.com/app/id<trackId>`；Android 读 `https://download.dootask.com/release/index.json`（`files.android.default` 拼下载地址），浏览器下载安装。只在官方版本高于本机时提示，失败静默。
-- 前端 `App.vue` 的 `checkAppUpdate(manual)`（`$A.eeuiAppCheckUpdate(callback)` 只做桥接；Expo 壳以 `window.__eeuiBridge` 识别，旧 eeui 壳仍走原 `checkUpdate()`）：弹 `$A.modalConfirm`「发现新版本 / 以后再说 / 立即更新」，通用文案、无跳过此版本、无强制更新。与桌面端一致，新版本须不高于服务器版本（`system/version`）才提示，取不到服务器版本也不提示。每天回前台自动检查一次；设置 →「版本」右侧「检查更新」经事件 `checkAppUpdate` 手动检查（已是最新 / 服务器版本较低 / 检查失败 各有提示）。
-  - [ ] 真机核对：iOS 跳转 App Store、Android 浏览器下载 apk、设置页手动检查四种结果（含服务器版本较低）
+- 前端 `App.vue` 的 `checkAppUpdate(manual)`（`$A.eeuiAppCheckUpdate(callback)` 只做桥接；Expo 壳以 `window.__eeuiBridge` 识别，旧 eeui 壳仍走原 `checkUpdate()`）：弹 `$A.modalConfirm`「发现新版本 / 以后再说 / 立即更新」，通用文案、无跳过此版本、无强制更新。与桌面端一致，新版本须不高于服务器版本（`system/version`）才提示，取不到服务器版本也不提示。冷启动 3 秒后自动检查一次，之后每天首次回前台再检查（旧壳由原生启动时检查，前端只做每日检查）；设置 →「版本」右侧「检查更新」经事件 `checkAppUpdate` 手动检查（已是最新 / 服务器版本较低 / 检查失败 各有提示）。
+  - [x] 真机核对（rel20，版本号临时改为 1.9.50）：iPhone 手动检查弹窗正常；Android 模拟器手动检查弹窗、服务器版本较低提示正常
+  - [ ] 冷启动自动检查（rel20 发现冷启动不检查：AppState 首次 active 不触发 __onAppActive，已在前端补启动检查，待下个包核对）
 
