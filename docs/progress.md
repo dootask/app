@@ -282,3 +282,11 @@ AI 无法自动完成的验证集中在这里，详细步骤见 `docs/page-compa
 - iPadOS 26 窗口化时红黄绿窗口控件改为紧凑样式：新增 `plugins/with-window-controls.js`，在 SceneDelegate 实现 `preferredWindowingControlStyle(for:)` 返回 `.minimal`（仅 iOS 26+ 生效）。
 - 横竖屏旋转、全屏 ↔ 窗口化后的安全区：对比测试了前端在窗口尺寸变化时重新获取安全区的修改（rel12）与不改前端（rel13），iPad 真机表现一致，前端不做改动。
 - ✅ rel13 iPad 真机简测通过（iPad Pro 11 寸第 4 代）；细项留到最终回归测试。
+
+## 二期 DooPush 推送（2026-10-19）
+
+- 接入 `doopush-react-native-sdk@0.6.6`：登录后注册 DooPush 设备并上报服务器 `api/push/device`，退出登录删除；后端友盟与 DooPush 双通道并存（见 `docs/doopush.md`）。
+- 点击通知打开会话：业务字段放在 DooPush `payload.data`（JSON 字符串）；iOS 从 expo-notifications 响应的 `trigger.payload` 读取，DooPush 点击事件兜底。
+- iOS：`aps-environment=production`、`remote-notification`；去掉未使用的 `voip` 后台模式。
+- ✅ rel15 iPad 真机简测通过：DooPush 控制台推送（APNs 密钥有效）、设备注册上报、真实聊天消息推送、后台点击与冷启动点击进入会话。
+- 待办：Android 厂商通道凭证（FCM/华为/荣耀/小米/OPPO/vivo/魅族）未配置；前台横幅表现留到最终回归。
