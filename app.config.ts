@@ -141,9 +141,14 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
           // 原生库压缩打包（与旧 eeui 一致）；不压缩时 APK 约 424MB，压缩后接近旧版体积
           useLegacyPackaging: true,
           // DooPush SDK 的 vivo 接收器继承 vivo 推送 SDK，未配置 vivo 通道时该 SDK 不引入，Release 混淆需忽略；
-          // HMS 按华为混淆说明保留（DooPush 反射调用），EMUI 系统类与华为分析 SDK 仅在真机/按需存在
+          // HMS 按华为混淆说明保留（DooPush 反射调用），EMUI 系统类与华为分析 SDK 仅在真机/按需存在；
+          // DooPush SDK 用 Gson 反射序列化请求/响应（Gson 2.10 不带混淆规则），不保留则注册请求字段被剔除（HTTP 400）
           extraProguardRules: [
             '-dontwarn com.vivo.push.**',
+            '-keep class com.doopush.sdk.** { *; }',
+            '-keepattributes Signature,*Annotation*,InnerClasses,EnclosingMethod',
+            '-keep class * extends com.google.gson.reflect.TypeToken',
+            '-keep,allowobfuscation,allowshrinking class com.google.gson.reflect.TypeToken',
             '-keep class com.huawei.hms.** { *; }',
             '-keep class com.huawei.hianalytics.** { *; }',
             '-dontwarn com.huawei.**',

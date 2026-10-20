@@ -5,9 +5,11 @@ import { getPermissionsAsync, requestPermissionsAsync } from 'expo-notifications
 import { IosAuthorizationStatus } from 'expo-notifications/build/NotificationPermissions.types';
 import { setBadgeCountAsync } from 'expo-notifications/build/setBadgeCountAsync';
 import { Platform } from 'react-native';
+import { DooPush } from 'doopush-react-native-sdk';
 
 import { registerMessage, type MessageHandler } from '../../bridge/dispatcher';
 import type { PageHandle } from '../../bridge/pages';
+import { ensureConfigured as ensureDooPushConfigured } from '../push';
 
 /** 查询通知权限并回调 __onNotificationPermissionStatus；首页每次恢复也会调用（对齐旧 index.vue pageResume） */
 export async function refreshNotificationPermission(page: PageHandle) {
@@ -42,7 +44,14 @@ const setBadge: MessageHandler = async (page, payload) => {
       }
       if (!permissions.ios?.allowsBadge) return;
     }
-    const applied = await setBadgeCountAsync(badge);
+    let applied: boolean;
+    if (Platform.OS === 'android') {
+      // expo-notifications 的 ShortcutBadger 识别不了华为等厂商桌面，改用 DooPush SDK 的厂商角标实现
+      ensureDooPushConfigured();
+      applied = await DooPush.setBadge(badge);
+    } else {
+      applied = await setBadgeCountAsync(badge);
+    }
     if (!applied && __DEV__) console.warn('[bridge/notifications] 当前系统或桌面不支持设置角标');
   });
   page.state.set('notifications.badgeTask', task);

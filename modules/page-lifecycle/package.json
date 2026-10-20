@@ -1,0 +1,7 @@
+{
+  "name": "dootask-page-lifecycle",
+  "version": "1.0.0",
+  "description": "DooTask 页面进入后台时直接通知 WebView（对齐旧 eeui pagePause）",
+  "private": true,
+  "license": "MIT"
+}

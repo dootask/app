@@ -46,8 +46,9 @@ export function usePageActive(onResume: () => void, onPause: () => void) {
     const prev = last.current;
     last.current = active;
     if (active) resume();
-    else if (prev !== null) pause();
-  }, [active]);
+    // Android 进入后台由原生模块 page-lifecycle 当场执行 __onPagePause（此时 Fabric 已暂停，injectJavaScript 要等回前台才执行）
+    else if (prev !== null && !(Platform.OS === 'android' && focused && !appActive)) pause();
+  }, [active, focused, appActive]);
 }
 
 /**

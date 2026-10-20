@@ -33,7 +33,7 @@ interface AppMessage {
 }
 
 let configured = false;
-function ensureConfigured() {
+export function ensureConfigured() {
   if (configured) return;
   DooPush.configure({ appId: DOOPUSH_APP_ID, appKey: DOOPUSH_APP_KEY });
   configured = true;
