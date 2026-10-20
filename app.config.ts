@@ -32,16 +32,22 @@ function readVersion(): { version: string; code: number } {
 const { version, code } = readVersion();
 
 /**
- * Android 厂商通道（小米/OPPO/vivo 等）客户端参数：不进仓库，由构建机环境变量 DOOPUSH_VENDORS_FILE
- * 指定 JSON 文件（绝对路径），结构同 doopush-react-native-sdk 插件的 android.vendors，
- * 如 { "oppo": { "appKey": "...", "appSecret": "..." } }；未指定则不启用
+ * Android 厂商通道（华为/荣耀/小米/OPPO/vivo/魅族）客户端参数：默认读仓库 push/android/vendors.json，
+ * 结构同 doopush-react-native-sdk 插件的 android.vendors。这些参数会编入 APK，并非机密；
+ * 服务端密钥只在 DooPush 控制台。私有部署可用环境变量 DOOPUSH_VENDORS_FILE 指定自己的文件。
+ * 文件内的 *File 字段（agconnect-services.json 等）为相对该 JSON 所在目录的路径
  */
-function readPushVendors(): Record<string, unknown> {
-  const file = process.env.DOOPUSH_VENDORS_FILE;
-  if (!file) {
-    return {};
+function readPushVendors(): Record<string, Record<string, unknown>> {
+  const file = path.resolve(__dirname, process.env.DOOPUSH_VENDORS_FILE || 'push/android/vendors.json');
+  const vendors: Record<string, Record<string, unknown>> = JSON.parse(fs.readFileSync(file, 'utf8'));
+  for (const vendor of Object.values(vendors)) {
+    for (const [key, value] of Object.entries(vendor)) {
+      if (key.endsWith('File') && typeof value === 'string') {
+        vendor[key] = path.resolve(path.dirname(file), value);
+      }
+    }
   }
-  return JSON.parse(fs.readFileSync(file, 'utf8'));
+  return vendors;
 }
 
 /**
@@ -219,13 +225,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       {
         // App ID / App Key 在 src/config.ts 中由 JS 调用 DooPush.configure 传入
         ios: { mode: 'production' },
-        // Android 厂商通道：凭证文件不进仓库，由构建机环境变量指定（绝对路径），未指定则不启用
-        android: {
-          vendors: {
-            ...readPushVendors(),
-            ...(process.env.DOOPUSH_HMS_SERVICES_FILE && { hms: { agconnectServicesFile: process.env.DOOPUSH_HMS_SERVICES_FILE } }),
-          },
-        },
+        // Android 厂商通道客户端参数，见 readPushVendors
+        android: { vendors: readPushVendors() },
       },
     ],
     './plugins/with-share',

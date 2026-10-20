@@ -1,0 +1,24 @@
+{
+  "xiaomi": {
+    "appId": "2882303761520159644",
+    "appKey": "5502015936644"
+  },
+  "oppo": {
+    "appKey": "f48b126465804bbeb847433afdbcb799",
+    "appSecret": "ce23d02b89544df8829ebdd1a9026ef0"
+  },
+  "vivo": {
+    "appId": "105562603",
+    "apiKey": "ea6a826256eb2896a2f36743d859dbd0"
+  },
+  "honor": {
+    "mcsServicesFile": "mcs-services.json"
+  },
+  "meizu": {
+    "appId": "156183",
+    "appKey": "0d7f3fdf412446188af0542f3a7b13a7"
+  },
+  "hms": {
+    "agconnectServicesFile": "agconnect-services.json"
+  }
+}

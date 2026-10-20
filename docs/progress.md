@@ -255,7 +255,7 @@ AI 无法自动完成的验证集中在这里，详细步骤见 `docs/page-compa
 
 - `RELEASE=1 scripts/pack.sh /tmp/dootask-app-rel.tgz` 打包时排除 `.env.local`（否则包内仍指向开发服务器）；构建机 `RELEASE=1 scripts/mac-build.sh <ios|android|all> <tgz>` iOS 传 `--configuration Release`，Android 用 gradle assembleRelease（经 scripts/android-signing.gradle 注入签名）后 adb 覆盖安装。前置：主仓库 `./cmd appexpo build` 同步 `assets/web/`。
 - mac-build.sh 必须以文件路径执行（拒绝 stdin），清理前校验当前目录是 App 根目录。
-- Android 正式签名：导出 ANDROID_KEYSTORE_PATH / ANDROID_KEYSTORE_PASSWORD / ANDROID_KEY_ALIAS / ANDROID_KEY_PASSWORD（构建机从旧 eeui 工程读取，勿写入仓库或日志），安装设备由 ANDROID_SERIAL 指定
+- Android 正式签名：`mac-build.sh` 自动读取构建机 iCloud 云盘 `DooTaskKeys/android/` 的 `dootask-release.jks` 与 `signing.env`（可用 DOOTASK_KEYS_DIR 改目录，勿写入仓库或日志），安装设备由 ANDROID_SERIAL 指定
 - 测试服务端为 2222 端口地址；2221 是 Metro 打包服务，填入会让服务器校验一直卡在加载中。
 
 ## 真机 UI 修复（2026-10-18，两轮）
@@ -289,10 +289,10 @@ AI 无法自动完成的验证集中在这里，详细步骤见 `docs/page-compa
 - 点击通知打开会话：业务字段放在 DooPush `payload.data`（JSON 字符串）；iOS 从 expo-notifications 响应的 `trigger.payload` 读取，DooPush 点击事件兜底。
 - iOS：`aps-environment=production`、`remote-notification`；去掉未使用的 `voip` 后台模式。
 - ✅ rel15 iPad 真机简测通过：DooPush 控制台推送（APNs 密钥有效）、设备注册上报、真实聊天消息推送、后台点击与冷启动点击进入会话。
-- 小米/OPPO/vivo 客户端参数沿用旧 eeui 友盟配置，存构建机 JSON 文件（不进仓库），以 `DOOPUSH_VENDORS_FILE` 指定（结构同 SDK 插件 `android.vendors`）；三家推送 SDK 被 DooPush 反射调用，Release 须 keep（否则 OPPO 注册失败 3305）。
+- 小米/OPPO/vivo 客户端参数沿用旧 eeui 友盟配置，2026-10-20 起与华为/荣耀 services 文件一起提交在仓库 `push/android/`（随 APK 分发，非机密；结构同 SDK 插件 `android.vendors`，私有部署可用 `DOOPUSH_VENDORS_FILE` 替换）；三家推送 SDK 被 DooPush 反射调用，Release 须 keep（否则 OPPO 注册失败 3305）。
 - ✅ rel31 一加（ColorOS，OPPO 通道）真机通过：后台与冷启动点击进入会话。此前 DooPush 给 OPPO 下发 intent:// 点击地址被系统静默丢弃，已在 DooPush 服务端改为 scheme URL + action_parameters；DooTask 不再指定 OPPO `category: IM`（未申请私信通道，错误 67）。
-- 荣耀（构建机 mcs-services.json，vendors 中 `honor.mcsServicesFile` 指定）、魅族（App ID/App Key）客户端参数已配置，rel33 核对 APK 内六家厂商配置齐全、各 SDK 类未被混淆，一加回归 OPPO 注册正常。
-- 待办：FCM 未配置；小米/vivo/荣耀/魅族待真机；华为已接入（agconnect-services.json 不进仓库，构建机以 DOOPUSH_HMS_SERVICES_FILE 指定，rel21c 起打入），真机推送待后端友盟下线完成后验证；前台横幅表现留到最终回归。
+- 荣耀（mcs-services.json，vendors 中 `honor.mcsServicesFile` 指定）、魅族（App ID/App Key）客户端参数已配置，rel33 核对 APK 内六家厂商配置齐全、各 SDK 类未被混淆，一加回归 OPPO 注册正常。
+- 待办：FCM 未配置；小米/vivo/荣耀/魅族待真机；前台横幅表现留到最终回归。
 
 ## 上架准备：隐私清单与权限说明（2026-10-19）
 

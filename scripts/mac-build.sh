@@ -2,7 +2,9 @@
 # Mac 构建机上执行：解包 → 安装依赖 → prebuild → 编译安装到模拟器
 # 用法：scripts/mac-build.sh <ios|android|all> [tgz路径]
 # RELEASE=1 时编译包内 Release（需先 ./cmd appexpo build 且打包时排除 .env.local）
-# Android Release 正式签名：ANDROID_KEYSTORE_PATH / ANDROID_KEYSTORE_PASSWORD / ANDROID_KEY_ALIAS / ANDROID_KEY_PASSWORD
+# Android Release 正式签名：读取 $DOOTASK_KEYS_DIR/android/（默认 iCloud 云盘 DooTaskKeys）下的
+# dootask-release.jks 与 signing.env（ANDROID_KEYSTORE_PASSWORD / ANDROID_KEY_ALIAS / ANDROID_KEY_PASSWORD）；
+# 已导出 ANDROID_KEYSTORE_PATH 时以环境变量为准
 set -euo pipefail
 platform="${1:-all}"
 tgz="${2:-}"
@@ -27,6 +29,15 @@ fi
 if [[ "$platform" == "android" || "$platform" == "all" ]]; then
   npx expo prebuild --platform android --clean --no-install
   if [[ -n "${RELEASE:-}" ]]; then
+    if [[ -z "${ANDROID_KEYSTORE_PATH:-}" ]]; then
+      keys_dir="${DOOTASK_KEYS_DIR:-$HOME/Library/Mobile Documents/com~apple~CloudDocs/DooTaskKeys}/android"
+      # iCloud 可能只留占位文件：读不到时直接失败，避免静默退化为 debug 签名
+      if [[ ! -s "$keys_dir/dootask-release.jks" || ! -s "$keys_dir/signing.env" ]]; then
+        echo "缺少签名文件：$keys_dir（iCloud 文件需在本机已下载）" >&2; exit 1
+      fi
+      set -a; source "$keys_dir/signing.env"; set +a
+      export ANDROID_KEYSTORE_PATH="$keys_dir/dootask-release.jks"
+    fi
     # 签名经 init script 注入（ANDROID_KEYSTORE_PATH 等未设置时退化 debug 签名）；安装目标设备由 ANDROID_SERIAL 指定
     (cd android && ./gradlew :app:assembleRelease --init-script ../scripts/android-signing.gradle)
     if ! adb install -r android/app/build/outputs/apk/release/app-release.apk; then

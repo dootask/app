@@ -9,7 +9,9 @@
 | App ID / App Key（`dp_ak_`） | App 端 `src/config.ts` | 客户端凭证，只能注册设备，随安装包分发（等同旧版写在 eeui.config.js 的友盟 appkey） |
 | App Secret（`dp_as_`，仅 `push:send`） | 各服务器「系统设置 → App 推送」 | 服务端发送用，**不进任何仓库/文件** |
 | APNs .p8 | DooPush 控制台 | |
-| Android 厂商凭证 | DooPush 控制台 + 构建时的 services 文件 | 待提供；文件不进仓库 |
+| Android 厂商客户端参数 | 仓库 `push/android/`（`vendors.json` + 华为/荣耀 services 文件） | 随 APK 分发，非机密；私有部署可用 `DOOPUSH_VENDORS_FILE` 换成自己的 |
+| Android 厂商服务端密钥 | DooPush 控制台 | 不进任何仓库/文件 |
+| Android 正式签名 | 构建机 iCloud 云盘 `DooTaskKeys/android/`（`dootask-release.jks` + `signing.env`） | **不进仓库**；`scripts/mac-build.sh` 在 RELEASE 时自动读取 |
 
 ## 消息与接口约定
 
