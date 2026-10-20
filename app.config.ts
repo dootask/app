@@ -32,6 +32,19 @@ function readVersion(): { version: string; code: number } {
 const { version, code } = readVersion();
 
 /**
+ * Android 厂商通道（小米/OPPO/vivo 等）客户端参数：不进仓库，由构建机环境变量 DOOPUSH_VENDORS_FILE
+ * 指定 JSON 文件（绝对路径），结构同 doopush-react-native-sdk 插件的 android.vendors，
+ * 如 { "oppo": { "appKey": "...", "appSecret": "..." } }；未指定则不启用
+ */
+function readPushVendors(): Record<string, unknown> {
+  const file = process.env.DOOPUSH_VENDORS_FILE;
+  if (!file) {
+    return {};
+  }
+  return JSON.parse(fs.readFileSync(file, 'utf8'));
+}
+
+/**
  * iOS 权限说明：每种语言一个 locales/<lang>.json（生成 <lang>.lproj/InfoPlist.strings），
  * Info.plist 默认值取简体中文。.strings 不展开 $(PRODUCT_NAME)，文案里直接写 DooTask。
  * 语言与 CFBundleLocalizations 保持一致。
@@ -142,8 +155,14 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
           useLegacyPackaging: true,
           // DooPush SDK 的 vivo 接收器继承 vivo 推送 SDK，未配置 vivo 通道时该 SDK 不引入，Release 混淆需忽略；
           // HMS 按华为混淆说明保留（DooPush 反射调用），EMUI 系统类与华为分析 SDK 仅在真机/按需存在；
-          // DooPush SDK 用 Gson 反射序列化请求/响应（Gson 2.10 不带混淆规则），不保留则注册请求字段被剔除（HTTP 400）
+          // DooPush SDK 用 Gson 反射序列化请求/响应（Gson 2.10 不带混淆规则），不保留则注册请求字段被剔除（HTTP 400）；
+          // OPPO/vivo/小米推送 SDK 同样被 DooPush 反射调用且 aar 不带混淆规则，不保留时类名被混淆、注册失败（3305）
           extraProguardRules: [
+            '-keep class com.heytap.msp.** { *; }',
+            '-dontwarn com.heytap.**',
+            '-keep class com.vivo.push.** { *; }',
+            '-keep class com.xiaomi.mipush.sdk.** { *; }',
+            '-dontwarn com.xiaomi.**',
             '-dontwarn com.vivo.push.**',
             '-keep class com.doopush.sdk.** { *; }',
             '-keepattributes Signature,*Annotation*,InnerClasses,EnclosingMethod',
@@ -196,9 +215,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       {
         // App ID / App Key 在 src/config.ts 中由 JS 调用 DooPush.configure 传入
         ios: { mode: 'production' },
-        // Android 厂商通道：services 文件不进仓库，由构建机环境变量指定（绝对路径），未指定则不启用
+        // Android 厂商通道：凭证文件不进仓库，由构建机环境变量指定（绝对路径），未指定则不启用
         android: {
           vendors: {
+            ...readPushVendors(),
             ...(process.env.DOOPUSH_HMS_SERVICES_FILE && { hms: { agconnectServicesFile: process.env.DOOPUSH_HMS_SERVICES_FILE } }),
           },
         },

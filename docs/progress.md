@@ -104,7 +104,7 @@ AI 无法自动完成的验证集中在这里，详细步骤见 `docs/page-compa
 - [x] Android getLatestPhoto 使用 DATE_TAKEN，旧壳为 DATE_ADDED，需补原生查询（🟡）— 2026-10-18 P2 B05 已改为原生 DATE_ADDED（e3b7eb8）
 - [x] iOS `voip` 后台模式：二期接 DooPush 时结合 PushKit 复核，否则上架可能被拒 — 2026-10-19 未用 PushKit/CallKit，已去掉 voip，只保留 audio
 - [x] Android 会议错误弹窗按钮为系统默认 “OK”，需本地化 — 2026-10-18 会议/扫码提示框显式传按钮（会议按语言 确定/確定/OK）
-- [x] 二期：DooPush 接入、开启 expo-notifications 远程推送与 aps-environment — 2026-10-19 iOS 真机通过，Android 厂商通道待凭证
+- [x] 二期：DooPush 接入、开启 expo-notifications 远程推送与 aps-environment — 2026-10-19 iOS 真机通过；2026-10-20 华为、OPPO 真机通过，小米/vivo 已打入待真机
 
 ## 记录
 
@@ -289,7 +289,9 @@ AI 无法自动完成的验证集中在这里，详细步骤见 `docs/page-compa
 - 点击通知打开会话：业务字段放在 DooPush `payload.data`（JSON 字符串）；iOS 从 expo-notifications 响应的 `trigger.payload` 读取，DooPush 点击事件兜底。
 - iOS：`aps-environment=production`、`remote-notification`；去掉未使用的 `voip` 后台模式。
 - ✅ rel15 iPad 真机简测通过：DooPush 控制台推送（APNs 密钥有效）、设备注册上报、真实聊天消息推送、后台点击与冷启动点击进入会话。
-- 待办：Android 厂商通道凭证（FCM/荣耀/小米/OPPO/vivo/魅族）未配置；华为已接入（agconnect-services.json 不进仓库，构建机以 DOOPUSH_HMS_SERVICES_FILE 指定，rel21c 起打入），真机推送待后端友盟下线完成后验证；前台横幅表现留到最终回归。
+- 小米/OPPO/vivo 客户端参数沿用旧 eeui 友盟配置，存构建机 JSON 文件（不进仓库），以 `DOOPUSH_VENDORS_FILE` 指定（结构同 SDK 插件 `android.vendors`）；三家推送 SDK 被 DooPush 反射调用，Release 须 keep（否则 OPPO 注册失败 3305）。
+- ✅ rel31 一加（ColorOS，OPPO 通道）真机通过：后台与冷启动点击进入会话。此前 DooPush 给 OPPO 下发 intent:// 点击地址被系统静默丢弃，已在 DooPush 服务端改为 scheme URL + action_parameters；DooTask 不再指定 OPPO `category: IM`（未申请私信通道，错误 67）。
+- 待办：荣耀（缺 developerId）/魅族/FCM 未配置，小米/vivo 待真机；华为已接入（agconnect-services.json 不进仓库，构建机以 DOOPUSH_HMS_SERVICES_FILE 指定，rel21c 起打入），真机推送待后端友盟下线完成后验证；前台横幅表现留到最终回归。
 
 ## 上架准备：隐私清单与权限说明（2026-10-19）
 
