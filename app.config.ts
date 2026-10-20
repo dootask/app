@@ -156,8 +156,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
           // DooPush SDK 的 vivo 接收器继承 vivo 推送 SDK，未配置 vivo 通道时该 SDK 不引入，Release 混淆需忽略；
           // HMS 按华为混淆说明保留（DooPush 反射调用），EMUI 系统类与华为分析 SDK 仅在真机/按需存在；
           // DooPush SDK 用 Gson 反射序列化请求/响应（Gson 2.10 不带混淆规则），不保留则注册请求字段被剔除（HTTP 400）；
-          // OPPO/vivo/小米推送 SDK 同样被 DooPush 反射调用且 aar 不带混淆规则，不保留时类名被混淆、注册失败（3305）
+          // OPPO/vivo/小米/荣耀/魅族推送 SDK 同样被 DooPush 反射调用且 aar 不带混淆规则，不保留时类名被混淆、注册失败（3305）
           extraProguardRules: [
+            '-keep class com.meizu.cloud.pushsdk.** { *; }',
+            '-dontwarn com.meizu.cloud.**',
+            '-keep class com.hihonor.push.** { *; }',
+            '-dontwarn com.hihonor.**',
             '-keep class com.heytap.msp.** { *; }',
             '-dontwarn com.heytap.**',
             '-keep class com.vivo.push.** { *; }',
