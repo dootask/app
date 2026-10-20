@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""校验内测 profiles、安装到构建机并生成导出配置；不改动原生工程。"""
+"""校验 profiles（内测 ad-hoc / development，或上架 app-store）、安装到构建机并生成导出配置；不改动原生工程。"""
 
 import base64
 import datetime
@@ -16,9 +16,9 @@ import sys
 
 def prepare(directory):
     method = os.environ.get("IOS_EXPORT_METHOD", "ad-hoc")
-    export_methods = {"ad-hoc": "release-testing", "development": "debugging"}
+    export_methods = {"ad-hoc": "release-testing", "development": "debugging", "app-store": "app-store-connect"}
     if method not in export_methods:
-        raise ValueError("IOS_EXPORT_METHOD 仅支持 ad-hoc / development")
+        raise ValueError("IOS_EXPORT_METHOD 仅支持 ad-hoc / development / app-store")
 
     directory.mkdir(parents=True, exist_ok=True)
     profiles = {}
@@ -44,8 +44,14 @@ def prepare(directory):
             raise ValueError(f"profile 的 Team entitlement 不匹配：{bundle_id}")
         if "group.im.dootask" not in entitlements.get("com.apple.security.application-groups", []):
             raise ValueError(f"profile 缺少 App Group group.im.dootask：{bundle_id}")
-        if not profile.get("ProvisionedDevices") or profile.get("ProvisionsAllDevices"):
+        if method == "app-store":
+            if profile.get("ProvisionedDevices") or profile.get("ProvisionsAllDevices"):
+                raise ValueError(f"上架需要 App Store profile，不能使用内测 profile：{bundle_id}")
+        elif not profile.get("ProvisionedDevices") or profile.get("ProvisionsAllDevices"):
             raise ValueError(f"需要包含测试设备 UDID 的 {method} profile，不能使用 App Store profile：{bundle_id}")
+        # 主 App 由 DooPush 收远程推送（aps-environment=production）
+        if bundle_id == "com.dootask.task" and "aps-environment" not in entitlements:
+            raise ValueError(f"profile 缺少 Push Notifications：{bundle_id}")
         if bool(entitlements.get("get-task-allow")) != (method == "development"):
             raise ValueError(f"profile 类型与 {method} 导出方式不匹配：{bundle_id}")
         expiry = profile["ExpirationDate"].replace(tzinfo=datetime.timezone.utc)
@@ -88,7 +94,7 @@ def prepare(directory):
     (directory / "signing.json").write_text(json.dumps({
         "team": team, "identity": identity, "profiles": profiles, "installed_profiles": installed,
     }), encoding="utf-8")
-    print(f"已校验并安装主 App / 分享扩展 {method} profiles（含 group.im.dootask）")
+    print(f"已校验并安装主 App / 分享扩展 {method} profiles（含 group.im.dootask、推送）")
 
 
 if __name__ == "__main__":

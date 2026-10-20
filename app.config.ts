@@ -73,7 +73,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   backgroundColor: '#ffffff',
   ios: {
     bundleIdentifier: 'com.dootask.task',
-    buildNumber: String(code),
+    // App Store 构建号须递增：CI 上架时按 App Store Connect 已有最大构建号 +1 经 IOS_BUILD_NUMBER 传入
+    buildNumber: process.env.IOS_BUILD_NUMBER || String(code),
     // Guangxi Hitosea（与旧 eeui 上架团队一致），真机自动签名用
     appleTeamId: 'G365J5PZA2',
     supportsTablet: true,

@@ -3,7 +3,7 @@
 这是 DooTask 的移动端 App，用于替换旧的 eeui（Weex）壳。整个 App 是一个全屏 WebView，加载 DooTask 的 Vue 2 前端；前端通过 eeui 兼容桥（`requireModuleJs`）调用原生能力。以后会逐步把部分页面迁移为 RN 原生页。
 
 - 技术栈：Expo SDK 58（React Native 0.88、React 19.3、新架构）、expo-router、react-native-webview，以及 CNG 和 config plugin。
-- 本仓库以 git 子模块形式挂载在 DooTask 主仓库的 `resources/app` 下。前端源码在主仓库的 `resources/assets/js`，旧 eeui 壳在 `resources/mobile`，两者都只作参考，**本仓库任务不要修改它们**。
+- 本仓库以 git 子模块形式挂载在 DooTask 主仓库的 `resources/app` 下。前端源码在主仓库的 `resources/assets/js`，只作参考，**本仓库任务不要修改它**。旧 eeui 壳已从主仓库移除，需要对照时查 https://github.com/kuaifan/dootask-app 。
 - 回复和代码注释使用简体中文。
 
 ## 必读文档
@@ -40,7 +40,7 @@ C 代表 Claude（集成方）负责，X 代表实现任务负责。**核心文�
 
 1. **不要提交 git**：不执行 commit、push、建分支，也不修改暂存区。提交由集成方统一完成。
 2. **兼容契约不能改**：
-   - `requireModuleJs` 的方法名、参数和回调数据结构必须与 eeui 保持一致（见清单和旧实现 `resources/mobile`）。
+   - `requireModuleJs` 的方法名、参数和回调数据结构必须与 eeui 保持一致（见清单和旧实现 https://github.com/kuaifan/dootask-app ）。
    - UA 后缀格式 `*_kuaifan_eeui/{版本}` 不变。
    - 本地服务地址 `http://localhost:22223` 不变。
    - 包名 / Bundle ID `com.dootask.task` 不变。
