@@ -3,16 +3,21 @@ const path = require('node:path');
 const plist = require('@expo/plist').default;
 const { createRunOncePlugin, withAndroidManifest, withEntitlementsPlist, withXcodeProject } = require('expo/config-plugins');
 
-const APP_GROUP = 'group.im.dootask';
 const TARGET = 'shareExtension';
-const BUNDLE_ID = 'com.dootask.task.shareExtension';
 const ACTIVITY = 'expo.modules.dootaskshare.ShareActivity';
 
 function writePlist(file, value) {
   fs.writeFileSync(file, plist.build(value));
 }
 
-function withShare(config) {
+/**
+ * 分享扩展：标识为主 App 包名 + .shareExtension；App Group 由 app.config.ts 传入（区分正式版与 dev 变体），
+ * 同时写入主 App 与扩展的 Info.plist（DooTaskAppGroup），ShareStorage.swift 运行时读取
+ */
+function withShare(config, { appGroup: APP_GROUP = 'group.im.dootask' } = {}) {
+  const BUNDLE_ID = `${config.ios?.bundleIdentifier ?? 'com.dootask.task'}.${TARGET}`;
+  config.ios ??= {};
+  config.ios.infoPlist = { ...config.ios.infoPlist, DooTaskAppGroup: APP_GROUP };
   // EAS 需要在生成工程之前知道扩展的标识与签名能力。
   config.extra ??= {};
   config.extra.eas ??= {};
@@ -77,6 +82,7 @@ function withShare(config) {
       CFBundleShortVersionString: '$(MARKETING_VERSION)',
       CFBundleVersion: '$(CURRENT_PROJECT_VERSION)',
       CFBundleDevelopmentRegion: 'en',
+      DooTaskAppGroup: APP_GROUP,
       NSAppTransportSecurity: config.ios?.infoPlist?.NSAppTransportSecurity ?? { NSAllowsArbitraryLoads: true },
       NSExtension: {
         NSExtensionPointIdentifier: 'com.apple.share-services',

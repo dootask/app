@@ -2,7 +2,8 @@ import Foundation
 
 /// 主 App 和分享扩展共用；保留旧 MMWormhole 的 share/<键>.archive，支持覆盖升级。
 enum ShareStorage {
-  static let appGroup = "group.im.dootask"
+  /// 由 with-share 插件写入 Info.plist（正式版与 dev 变体不同）
+  static let appGroup = Bundle.main.object(forInfoDictionaryKey: "DooTaskAppGroup") as? String ?? "group.im.dootask"
   static let keys: Set<String> = ["language", "chatList", "upLoadUrl", "fileUpLoadUrl"]
 
   private static func sharedDirectory() throws -> URL {

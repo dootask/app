@@ -50,8 +50,7 @@
   },
   "scripts": {
     "postinstall": "patch-package",
-    "start": "EXPO_PACKAGER_PROXY_URL=https://2221--main--apang--kuaifan.coder.dootask.com expo start --dev-client --port 2221",
-    "start:local": "expo start --dev-client --port 2221",
+    "start": "expo start --dev-client --port 2220",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
     "check": "npm run typecheck && npm run lint",

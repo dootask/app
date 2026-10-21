@@ -5,7 +5,7 @@ import type { ConfigContext, ExpoConfig } from 'expo/config';
 
 /**
  * 版本号来源（优先级从高到低）：
- * 1. 本仓库的 version.json（主仓库 ./cmd appexpo build 与包内前端同时写入，保证与打包的前端一致；
+ * 1. 本仓库的 version.json（主仓库 ./cmd expo build 与包内前端同时写入，保证与打包的前端一致；
  *    构建机上的主仓库可能是旧版本，不能优先读它）
  * 2. 缺失时回退主仓库 ../../package.json 的 version / codeVerson
  */
@@ -30,6 +30,14 @@ function readVersion(): { version: string; code: number } {
 }
 
 const { version, code } = readVersion();
+
+/**
+ * 构建变体：APP_VARIANT=development 生成 DooTask (dev)，独立包名与 App Group，可与正式版同时安装，
+ * 用 dev client 连 Metro 开发；不接厂商推送（厂商参数绑定正式包名）。默认 production
+ */
+const isDevVariant = process.env.APP_VARIANT === 'development';
+const appId = isDevVariant ? 'com.dootask.task.dev' : 'com.dootask.task';
+const appGroup = isDevVariant ? 'group.im.dootask.dev' : 'group.im.dootask';
 
 /**
  * Android 厂商通道（华为/荣耀/小米/OPPO/vivo/魅族）客户端参数：默认读仓库 push/android/vendors.json，
@@ -62,9 +70,10 @@ const usage: Record<string, string> = JSON.parse(
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: 'DooTask',
-  slug: 'dootask',
-  scheme: 'dootask',
+  name: isDevVariant ? 'DooTask (dev)' : 'DooTask',
+  slug: isDevVariant ? 'dootask-dev' : 'dootask',
+  scheme: isDevVariant ? 'dootask-dev' : 'dootask',
+  platforms: ['ios', 'android'],
   version,
   // Android 先以竖屏启动，再由运行时策略为平板解锁，避免手机横屏启动后闪转。
   orientation: 'portrait',
@@ -72,7 +81,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   userInterfaceStyle: 'automatic',
   backgroundColor: '#ffffff',
   ios: {
-    bundleIdentifier: 'com.dootask.task',
+    bundleIdentifier: appId,
     // App Store 构建号须递增：CI 上架时按 App Store Connect 已有最大构建号 +1 经 IOS_BUILD_NUMBER 传入
     buildNumber: process.env.IOS_BUILD_NUMBER || String(code),
     // Guangxi Hitosea（与旧 eeui 上架团队一致），真机自动签名用
@@ -106,7 +115,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   locales: Object.fromEntries(LOCALES.map((lang) => [lang, `./locales/${lang}.json`])),
   android: {
-    package: 'com.dootask.task',
+    package: appId,
     versionCode: code,
     adaptiveIcon: {
       backgroundColor: '#8BCF70',
@@ -225,12 +234,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       'doopush-react-native-sdk',
       {
         // App ID / App Key 在 src/config.ts 中由 JS 调用 DooPush.configure 传入
-        ios: { mode: 'production' },
+        // dev 变体由 Xcode 自动签名（开发证书），推送环境须为 development
+        ios: { mode: isDevVariant ? 'development' : 'production' },
         // Android 厂商通道客户端参数，见 readPushVendors
-        android: { vendors: readPushVendors() },
+        ...(!isDevVariant && { android: { vendors: readPushVendors() } }),
       },
     ],
-    './plugins/with-share',
+    ['./plugins/with-share', { appGroup }],
     './plugins/with-meeting',
     'expo-screen-orientation',
     './plugins/with-device-orientation',

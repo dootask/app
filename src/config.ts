@@ -6,8 +6,8 @@ export const LOCAL_WEB_PORT = 22223;
 export const LOCAL_WEB_ORIGIN = `http://localhost:${LOCAL_WEB_PORT}`;
 
 /**
- * 开发模式下直接加载的前端地址（例如 https://2222--main--apang--kuaifan.coder.dootask.com）。
- * 在 .env.local 中设置 EXPO_PUBLIC_WEB_URL，由 Metro 内联，无需重新构建原生包。
+ * 开发模式下直接加载的前端地址（如开发机前端 dev server 的对外地址）。
+ * 由 ./cmd expo dev 自动推导或命令行传入 EXPO_PUBLIC_WEB_URL，Metro 内联，无需重新构建原生包。
  */
 export const DEV_WEB_URL = (process.env.EXPO_PUBLIC_WEB_URL ?? '').trim();
 

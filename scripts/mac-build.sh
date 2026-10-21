@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # Mac 构建机上执行：解包 → 安装依赖 → prebuild → 编译安装到模拟器
 # 用法：scripts/mac-build.sh <ios|android|all> [tgz路径]
-# RELEASE=1 时编译包内 Release（需先 ./cmd appexpo build 且打包时排除 .env.local）
+# RELEASE=1 时编译包内 Release（需先 ./cmd expo build 且打包时排除 .env.local）
 # Android Release 正式签名：读取 $DOOTASK_KEYS_DIR/android/（默认 iCloud 云盘 DooTaskKeys）下的
 # dootask-release.jks 与 signing.env（ANDROID_KEYSTORE_PASSWORD / ANDROID_KEY_ALIAS / ANDROID_KEY_PASSWORD）；
 # 已导出 ANDROID_KEYSTORE_PATH 时以环境变量为准
+# DEV=1 时构建 DooTask (dev) 变体（APP_VARIANT=development，独立包名，可与正式版共存），固定 Debug，忽略 RELEASE
 set -euo pipefail
 platform="${1:-all}"
 tgz="${2:-}"
@@ -19,12 +20,26 @@ if [[ -n "$tgz" ]]; then
   tar -xzf "$tgz"
 fi
 npm install --no-audit --no-fund
+if [[ -n "${DEV:-}" ]]; then
+  export APP_VARIANT=development
+  unset RELEASE
+fi
 ios_extra=()
 if [[ -n "${RELEASE:-}" ]]; then ios_extra=(--configuration Release); fi
 if [[ "$platform" == "ios" || "$platform" == "all" ]]; then
   npx expo prebuild --platform ios --clean --no-install
   (cd ios && pod install)
-  npx expo run:ios --no-bundler ${ios_extra[@]+"${ios_extra[@]}"} ${IOS_DEVICE:+--device "$IOS_DEVICE"}
+  if [[ -n "${DEV:-}" && -n "${IOS_DEVICE:-}" ]]; then
+    # 工程已带 appleTeamId 时 expo run:ios 不传 -allowProvisioningUpdates，新包名/App Group 无法自动注册，故直接调 xcodebuild
+    workspace=$(ls -d ios/*.xcworkspace | head -1)
+    scheme=$(basename "$workspace" .xcworkspace)
+    xcodebuild -workspace "$workspace" -scheme "$scheme" -configuration Debug -destination "id=$IOS_DEVICE" \
+      -derivedDataPath ios/build/dd -allowProvisioningUpdates -allowProvisioningDeviceRegistration \
+      COCOAPODS_PARALLEL_CODE_SIGN=true COMPILER_INDEX_STORE_ENABLE=NO build
+    xcrun devicectl device install app --device "$IOS_DEVICE" "ios/build/dd/Build/Products/Debug-iphoneos/$scheme.app"
+  else
+    npx expo run:ios --no-bundler ${ios_extra[@]+"${ios_extra[@]}"} ${IOS_DEVICE:+--device "$IOS_DEVICE"}
+  fi
 fi
 if [[ "$platform" == "android" || "$platform" == "all" ]]; then
   npx expo prebuild --platform android --clean --no-install
