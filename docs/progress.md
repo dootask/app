@@ -117,7 +117,7 @@ AI 无法自动完成的验证集中在这里，详细步骤见 `docs/page-compa
 - 主页面、二级页面骨架、桥接自测页。
 - `docs/bridge-inventory.md`、`AGENTS.md`。
 
-验证结果（Mac mini 模拟器，dev client 连接本机 Metro 2221）：
+验证结果（Mac mini 模拟器，dev client 连接本机 Metro 2220）：
 
 - Android（emulator API 35，`dootask_api35`）：
   - ✅ 构建并安装成功（gradle 用时 5 分 39 秒）。
@@ -161,7 +161,7 @@ AI 无法自动完成的验证集中在这里，详细步骤见 `docs/page-compa
 
 集成方已应用首页接入 diff（`useLocalWebReady`、缓存迁移、设备标识、深链）和根布局 ToastHost / 应用主题，并在 `+native-intent.tsx` 的保留路由中加入开发工具 `dev-eval`。
 
-验证结果（Mac mini 模拟器，重新 prebuild 并构建双端，dev client 连接 Metro 2221）：
+验证结果（Mac mini 模拟器，重新 prebuild 并构建双端，dev client 连接 Metro 2220）：
 
 - ✅ 双端原生编译通过：Swift 与 Kotlin 的 `DooTaskWebServer`、`DooTaskLegacyStore` 都已被 autolinking 发现并编译。
 - ✅ 覆盖安装后保留登录状态，主页面直接进入仪表盘；缓存迁移和设备标识初始化没有报错。
@@ -256,7 +256,7 @@ AI 无法自动完成的验证集中在这里，详细步骤见 `docs/page-compa
 - `RELEASE=1 scripts/pack.sh /tmp/dootask-app-rel.tgz` 打包时排除 `.env.local`（否则包内仍指向开发服务器）；构建机 `RELEASE=1 scripts/mac-build.sh <ios|android|all> <tgz>` iOS 传 `--configuration Release`，Android 用 gradle assembleRelease（经 scripts/android-signing.gradle 注入签名）后 adb 覆盖安装。前置：主仓库 `./cmd appexpo build` 同步 `assets/web/`。
 - mac-build.sh 必须以文件路径执行（拒绝 stdin），清理前校验当前目录是 App 根目录。
 - Android 正式签名：`mac-build.sh` 自动读取构建机 iCloud 云盘 `DooTaskKeys/android/` 的 `dootask-release.jks` 与 `signing.env`（可用 DOOTASK_KEYS_DIR 改目录，勿写入仓库或日志），安装设备由 ANDROID_SERIAL 指定
-- 测试服务端为 2222 端口地址；2221 是 Metro 打包服务，填入会让服务器校验一直卡在加载中。
+- 测试服务端为 2222 端口地址；2220 是 Metro 打包服务，填入会让服务器校验一直卡在加载中。
 
 ## 真机 UI 修复（2026-10-18，两轮）
 
