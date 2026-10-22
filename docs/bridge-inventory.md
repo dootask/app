@@ -45,7 +45,7 @@
 | setPageBackPressed({pageName}, cb) | 按下 Android 返回键时调用 cb（可多次触发） | Back.vue 用它拦截首页返回 | ✅ C |
 | goDesktop() | — | Android 退到桌面（moveTaskToBack），iOS 忽略 | ✅ X1（`src/native/register.ts`，首页导入 native 后注册，待实机验证） |
 | alert(object, cb) | `{title, message, button, cancelable?}` 或标题字符串 → cb(null) | 原生 Alert；取消只释放回调 | ✅ X1 |
-| toast(object) | `{message, gravity?}` 或字符串 | Android 用 ToastAndroid，iOS 用轻量浮层 | 🟡 X1（ToastHost 已实现，待集成方挂到根布局，见 x1-bridge-report.md） |
+| toast(object) | `{message, gravity?}` 或字符串 | Android 用 ToastAndroid，iOS 用轻量浮层 | ✅ X1（ToastHost 已挂到根布局 `src/app/_layout.tsx`） |
 | openWeb(url) | — | 用系统浏览器打开 | ✅ X1 |
 | keepScreenOn() / keepScreenOff() | — | expo-keep-awake | ✅ X1 |
 | keyboardHide() | — | Keyboard.dismiss + WebView blur | ✅ X1 |
@@ -77,7 +77,7 @@
 |---|---|---|---|
 | initApp | `{apiUrl, userid, token, language, userAgent}` | 保存到 bridgeStore 变量 `appMessage`；一期不启动推送 | ✅ X1 |
 | windowSize | `{width, height}` | 记录为 variate `windowWidth` / `windowHeight` | ✅ X1 |
-| updateTheme | `{themeName, themeDefault:{theme:{dark,light}, nav:{dark,light}}}` | 状态栏样式、背景色；缓存 themeName / themeDefault，保留 getThemeName 的系统主题语义 | 🟡 X1（消息、WebView 和二级导航已实现；根布局需改用 useAppTheme，保证重启和系统主题变化时状态栏一致） |
+| updateTheme | `{themeName, themeDefault:{theme:{dark,light}, nav:{dark,light}}}` | 状态栏样式、背景色；缓存 themeName / themeDefault，保留 getThemeName 的系统主题语义 | ✅ X1（根布局 `src/app/_layout.tsx` 已改用 useAppTheme，重启和系统主题变化时状态栏一致） |
 | callTel | `{tel}` | `tel:` 链接 | ✅ X1 |
 | setVibrate | `{time?}` | Vibration；Android 缺省 500ms，iOS 使用系统振动 | ✅ X1 |
 | gotoSetting | — | Linking.openSettings | ✅ X1 |

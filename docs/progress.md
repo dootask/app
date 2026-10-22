@@ -1,6 +1,7 @@
 # 进度
 
 一期目标：换壳并补齐兼容桥，功能与旧壳对齐（不含推送），只做内测（TestFlight / Android 内测）。
+二期目标：接入 DooPush 替换友盟推送，完成后正式上架。
 
 | 里程碑 | 内容 | 状态 |
 |---|---|---|
@@ -8,8 +9,9 @@
 | M1 | WebView 壳与兼容桥 | 完成 |
 | M2 | 原生能力（扫码、图片、通知权限、分享等） | 完成，部分待手测 |
 | M3 | Agora 会议 | 完成，待真实通话验收 |
-| M4 | 构建与 CI | 链路完成，待配置 secrets 出包 |
+| M4 | 构建与 CI | 完成：GitHub Actions 出包（publish.yml 正式签名 APK、ios-publish.yml 上传 App Store Connect），签名 secrets 已配置（bad7634f2） |
 | M5 | 测试与内测 | 进行中：页面级兼容（键盘等） |
+| M6 | 二期 DooPush 推送 | 完成：iOS、华为、OPPO 真机通过；FCM 未配置 |
 
 ## 用户验收清单（汇总，验收后勾选）
 
@@ -41,6 +43,10 @@ AI 无法自动完成的验证集中在这里，详细步骤见 `docs/page-compa
 ## 待办清单（集中跟踪）
 
 新发现的待办先追加到这里，完成后改为 `[x]` 并注明日期 / 提交；各节「未验证」为当时的原始记录。
+
+**技术待办**
+- [ ] FCM 未配置：非六家厂商通道的 Android 设备（三星、Pixel、海外机型等）收不到推送；需 Firebase 项目的 `google-services.json` 与服务端凭证（填入 DooPush）
+- [ ] 旧 eeui 版用户基本升级完后，下线后端友盟通道（`app/Module/AppPush/` 友盟逻辑与相关配置）
 
 **页面级兼容**
 - [x] 聊天页弹出键盘时输入框被遮挡（Android 已修复并验证，见「键盘避让」；iOS 待手动确认）
@@ -133,7 +139,7 @@ AI 无法自动完成的验证集中在这里，详细步骤见 `docs/page-compa
 
 - Android 的 `injectedJavaScriptBeforeContentLoaded` 由 react-native-webview 在 onPageStarted 时用 evaluateJavascript 注入，可能晚于页面内联脚本执行（实测约晚 50ms）。
   - 前端 `app.js` 会等待 `requireModuleJs`（最长 15 秒），所以主应用不受影响；自测页已改为等待注入。
-  - 后续加固：用 `WebViewCompat.addDocumentStartJavaScript` 在文档开始阶段注入（需要 patch react-native-webview 或自定义 WebView），列入 M2。
+  - 后续加固：用 `WebViewCompat.addDocumentStartJavaScript` 在文档开始阶段注入（需要 patch react-native-webview 或自定义 WebView），列入 M2。— 2026-10-22 无需再做：react-native-webview 14 起 Android 已内置用 addDocumentStartJavaScript 注入。
 - 版本号读取主仓库的 `package.json`。Mac mini 上的主仓库较旧，所以显示 1.9.36 / 243；这符合预期，正式构建时以主仓库当前版本为准。
 
 ### 2026-10-17 X1 桥方法与二级页 UI
