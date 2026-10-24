@@ -253,15 +253,41 @@ test('连续扫码节流、图片来源、提前返回、失效页面与 StrictM
   assert.deepEqual(early.page.events.map((e) => e.type), ['release']);
 });
 
-test('缩放：保持双指中点、1–6 倍限制、平移边界与黑边', () => {
+test('缩放：保持双指中点、1–5 倍限制、平移边界与黑边', () => {
   const { containSize, pinchZoom, constrainZoom } = load('zoom.ts');
   const viewport = { width: 400, height: 800 };
   const image = containSize({ width: 1200, height: 600 }, viewport);
   assert.deepEqual(plain(image), { width: 400, height: 200 });
+  assert.deepEqual(plain(containSize({ width: 0, height: 0 }, viewport)), viewport);
   assert.deepEqual(plain(pinchZoom({ scale: 1, x: 0, y: 0 }, { x: 50, y: 0 }, { x: 50, y: 0 }, 2)), { scale: 2, x: -50, y: 0 });
-  assert.deepEqual(plain(constrainZoom({ scale: 10, x: 9999, y: 9999 }, image, viewport)), { scale: 6, x: 1000, y: 200 });
+  assert.deepEqual(plain(constrainZoom({ scale: 10, x: 9999, y: 9999 }, image, viewport)), { scale: 5, x: 800, y: 100 });
   const reset = constrainZoom({ scale: 0.5, x: 40, y: 50 }, image, viewport);
   assert.equal(reset.scale, 1); assert.equal(Math.abs(reset.x), 0); assert.equal(Math.abs(reset.y), 0);
+});
+
+test('双击：以点击位置为中心放大 2.5 倍并受边界约束，已放大时还原', () => {
+  const { doubleTapZoom } = load('zoom.ts');
+  const viewport = { width: 400, height: 800 };
+  const image = { width: 400, height: 800 };
+  assert.deepEqual(plain(doubleTapZoom({ scale: 1, x: 0, y: 0 }, { x: 100, y: -100 }, image, viewport)), { scale: 2.5, x: -150, y: 150 });
+  // 点在角落时平移被限制在图片边缘内。
+  assert.deepEqual(plain(doubleTapZoom({ scale: 1, x: 0, y: 0 }, { x: 200, y: 400 }, image, viewport)), { scale: 2.5, x: -300, y: -600 });
+  assert.deepEqual(plain(doubleTapZoom({ scale: 2.5, x: -150, y: 150 }, { x: 0, y: 0 }, image, viewport)), { scale: 1, x: 0, y: 0 });
+});
+
+test('下拉关闭：只计向下进度，距离或快速下甩触发，上滑与回拉不关闭', () => {
+  const { dismissProgress, dismissScale, shouldDismiss, DISMISS_DISTANCE } = load('zoom.ts');
+  assert.equal(dismissProgress(-80), 0);
+  assert.equal(dismissProgress(120), 0.5);
+  assert.equal(dismissProgress(9999), 1);
+  assert.equal(dismissScale(0), 1);
+  assert.ok(Math.abs(dismissScale(1) - 0.6) < 1e-9);
+  assert.equal(shouldDismiss(DISMISS_DISTANCE, 0), true);
+  assert.equal(shouldDismiss(DISMISS_DISTANCE - 1, 100), false);
+  assert.equal(shouldDismiss(40, 1200), true);
+  assert.equal(shouldDismiss(10, 1200), false);
+  assert.equal(shouldDismiss(200, -300), false);
+  assert.equal(shouldDismiss(-200, 2000), false);
 });
 
 function photoFixture(platform, options = {}) {

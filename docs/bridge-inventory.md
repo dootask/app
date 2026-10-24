@@ -84,8 +84,8 @@
 | getNotificationPermission | → `window.__onNotificationPermissionStatus(ret)`，ret 为 boolean | 一期只查询权限，不弹窗 | ✅ X2（本地通知模块自注册；待集成 import，设备待验收） |
 | setBdageNotify / setBadgeNum | `{bdage}` | iOS 首次设置时申请角标 / 提醒 / 声音权限；Android 尽力设置 | ✅ X2（不注册推送 token；Android 桌面支持有限，插件配置见报告） |
 | clearAllNotify | — | 清除已展示和待发送的本地通知 | ✅ X2（不重置 iOS 角标、不触发授权；设备待验收） |
-| picturePreview | `{language, position, paths}` | 原生图片预览 | ✅ X2（多图、初始索引、左右滑动、双指缩放、关闭；待集成 import 与设备验证） |
-| videoPreview | `{language, path}` | 原生视频播放 | ✅ X2（expo-video、原生播放控件、失焦 / 后台暂停；待集成 import 与设备验证） |
+| picturePreview | `{language, position, paths}` | 原生图片预览 | ✅ X2（多图、初始索引、左右滑动、双指缩放、关闭；待集成 import 与设备验证）；2026-10-24 改为仿微信交互：无顶栏、底部圆点指示器（>9 张显示“当前/总数”）、下拉渐变关闭、单击关闭、双击缩放，expo-image 加载，透明模态呈现（交互待真机验证） |
+| videoPreview | `{language, path}` | 原生视频播放 | ✅ X2（expo-video、原生播放控件、失焦 / 后台暂停；待集成 import 与设备验证）；2026-10-24 去掉顶栏，改为下拉渐变关闭（待真机验证） |
 | userChatList | `{language, url}` | 系统分享扩展所需的会话列表（iOS App Group / Android 缓存） | ✅ X2（`src/features/share`；App Group UserDefaults + 旧 archive / Android eeuiCaches；待集成 import 与设备验收） |
 | userUploadUrl | `{dirUrl, chatUrl}` | 同上 | ✅ X2（保留 upLoadUrl / fileUpLoadUrl；双端原生分享页与上传、CNG 扩展 / Activity 已实现，见 x2-share-report.md） |
 | startMeeting | `{meetingParams:{...}}` | Agora 原生会议、音视频网格、媒体控制、邀请/缩小/恢复、离开确认；事件通过 `__onMeetingEvent` 回传 | ✅ X3（`src/features/meeting`；待集成注册 import / 根布局 MeetingOverlay，以及双端编译和真机验收，见 x3-meeting-report.md） |

@@ -31,6 +31,11 @@ export default function RootLayout() {
           name="meeting"
           options={{ presentation: Platform.OS === 'android' ? 'transparentModal' : 'fullScreenModal' }}
         />
+        {/* 图片/视频预览下拉关闭时背景渐变透明，需露出下层页面；手势由页面自行处理，关闭系统返回手势避免冲突 */}
+        <Stack.Screen
+          name="media-preview"
+          options={{ presentation: 'transparentModal', animation: 'fade', gestureEnabled: false, contentStyle: { backgroundColor: 'transparent' } }}
+        />
       </Stack>
       <ToastHost />
       <MeetingOverlay />
