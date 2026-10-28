@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { BackHandler, Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, BackHandler, Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, Stack, useFocusEffect, useIsFocused, useLocalSearchParams, useNavigation } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { WebViewNavigation } from 'react-native-webview/lib/WebViewTypes';
@@ -65,6 +65,19 @@ export default function WebPage() {
   const actionUrl = String(data.url ?? url);
   const title = String(data.title ?? (webTitle || request?.options.pageTitle || defaultTitle));
   const moreShow = !!data.moreShow;
+  const dark = theme.themeName === 'dark';
+  // 菜单收起时需保留挂载直到动画结束
+  const [menuMounted, setMenuMounted] = useState(moreShow);
+  const [menuAnim] = useState(() => new Animated.Value(moreShow ? 1 : 0));
+  if (moreShow && !menuMounted) setMenuMounted(true);
+
+  useEffect(() => {
+    const animation = Animated.timing(menuAnim, { toValue: moreShow ? 1 : 0, duration: moreShow ? 160 : 120, useNativeDriver: true });
+    animation.start(({ finished }) => {
+      if (finished && !moreShow) setMenuMounted(false);
+    });
+    return () => animation.stop();
+  }, [moreShow, menuAnim]);
 
   const closePage = useCallback(() => {
     if (closingRef.current || !navigation.canGoBack()) return;
@@ -155,10 +168,10 @@ export default function WebPage() {
   };
 
   const menuItems = [
-    ...(history.canGoBack ? [{ action: 'back' as const, label: String(data.moreBackText ?? backText) }] : []),
-    ...(history.canGoForward ? [{ action: 'forward' as const, label: String(data.moreForwardText ?? forwardText) }] : []),
-    ...(canOpenInBrowser(actionUrl) ? [{ action: 'browser' as const, label: String(data.moreBrowserText ?? browserText) }] : []),
-    { action: 'refresh' as const, label: String(data.moreRefreshText ?? refreshText) },
+    ...(history.canGoBack ? [{ action: 'back' as const, label: String(data.moreBackText ?? backText), icon: MENU_ICONS.back }] : []),
+    ...(history.canGoForward ? [{ action: 'forward' as const, label: String(data.moreForwardText ?? forwardText), icon: MENU_ICONS.forward }] : []),
+    ...(canOpenInBrowser(actionUrl) ? [{ action: 'browser' as const, label: String(data.moreBrowserText ?? browserText), icon: MENU_ICONS.browser }] : []),
+    { action: 'refresh' as const, label: String(data.moreRefreshText ?? refreshText), icon: MENU_ICONS.refresh },
   ];
 
   if (!request) return <View style={styles.container} />;
@@ -204,17 +217,32 @@ export default function WebPage() {
         </View>
         <SnapshotOverlay values={webViewValues} />
         {showProgress && progress < 1 && <View pointerEvents="none" style={[styles.progress, { width: `${Math.max(0.02, progress) * 100}%`, backgroundColor: theme.navColor }]} />}
-        {moreShow && (
-          <View style={StyleSheet.absoluteFill}>
+        {menuMounted && (
+          <View style={StyleSheet.absoluteFill} pointerEvents={moreShow ? 'auto' : 'none'}>
             <Pressable accessibilityLabel="关闭菜单" onPress={() => setMoreShow(false)} style={StyleSheet.absoluteFill} />
-            <View style={styles.menuArrow} />
-            <View style={styles.menu}>
+            <Animated.View
+              style={[
+                styles.menu,
+                dark ? styles.menuDark : styles.menuLight,
+                { opacity: menuAnim, transform: [{ scale: menuAnim.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) }] },
+              ]}
+            >
               {menuItems.map((item, index) => (
-                <Pressable key={item.action} accessibilityRole="button" onPress={() => menuAction(item.action)} style={[styles.menuItem, index > 0 && styles.menuLine]}>
-                  <Text allowFontScaling={false} style={styles.menuText}>{item.label}</Text>
+                <Pressable
+                  key={item.action}
+                  accessibilityRole="button"
+                  onPress={() => menuAction(item.action)}
+                  style={({ pressed }) => [
+                    styles.menuItem,
+                    index > 0 && [styles.menuLine, { borderTopColor: dark ? '#3a3a3c' : '#f0f0f0' }],
+                    pressed && { backgroundColor: dark ? '#3a3a3c' : '#f2f3f5' },
+                  ]}
+                >
+                  <Image source={item.icon} style={[styles.menuIcon, { tintColor: dark ? '#c7c7cc' : '#606266' }]} />
+                  <Text allowFontScaling={false} numberOfLines={1} style={[styles.menuText, { color: dark ? '#e5e5ea' : '#303133' }]}>{item.label}</Text>
                 </Pressable>
               ))}
-            </View>
+            </Animated.View>
           </View>
         )}
       </KeyboardInset>
@@ -235,6 +263,13 @@ export default function WebPage() {
   );
 }
 
+const MENU_ICONS = {
+  back: require('../../assets/menu/menu_back.png'),
+  forward: require('../../assets/menu/menu_forward.png'),
+  browser: require('../../assets/menu/menu_browser.png'),
+  refresh: require('../../assets/menu/menu_refresh.png'),
+};
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -246,9 +281,12 @@ const styles = StyleSheet.create({
   // 导航栏与菜单 Text 均 allowFontScaling=false：对齐 eeui 原生 header 的固定字号
   title: { flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '600' },
   progress: { position: 'absolute', top: 0, left: 0, height: 2 },
-  menuArrow: { position: 'absolute', top: 0, right: 22, borderLeftWidth: 8, borderRightWidth: 8, borderBottomWidth: 10, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderBottomColor: '#464646' },
-  menu: { position: 'absolute', top: 10, right: 10, width: 160, borderRadius: 7, backgroundColor: '#464646', overflow: 'hidden' },
-  menuItem: { minHeight: 44, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8, paddingVertical: 10 },
-  menuLine: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#333333' },
-  menuText: { color: '#ffffff', fontSize: 15, textAlign: 'center' },
+  // 浅色卡片下拉菜单，从右上角（更多按钮下方）缩放展开
+  menu: { position: 'absolute', top: 4, right: 8, minWidth: 168, maxWidth: 240, padding: 4, borderRadius: 12, transformOrigin: 'top right', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowRadius: 16, elevation: 8 },
+  menuLight: { backgroundColor: '#ffffff', shadowOpacity: 0.12 },
+  menuDark: { backgroundColor: '#2c2c2e', shadowOpacity: 0.4 },
+  menuItem: { minHeight: 48, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, borderRadius: 8 },
+  menuLine: { borderTopWidth: StyleSheet.hairlineWidth },
+  menuIcon: { width: 20, height: 20, marginRight: 12 },
+  menuText: { flexShrink: 1, fontSize: 15 },
 });
