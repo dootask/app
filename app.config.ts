@@ -91,9 +91,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       ITSAppUsesNonExemptEncryption: false,
       // 声明支持的语言，系统菜单（复制/翻译等）才会跟随手机语言；缺省时只按英文显示
       CFBundleLocalizations: [...LOCALES],
+      // 只保留 NSAllowsArbitraryLoads：同时声明 NSAllowsLocalNetworking 等键时 iOS 会忽略它，
+      // 导致自部署服务器的公网 IP / 域名 http 地址被 ATS 拦截
       NSAppTransportSecurity: {
         NSAllowsArbitraryLoads: true,
-        NSAllowsLocalNetworking: true,
       },
       UIBackgroundModes: ['audio'],
       // 相机、麦克风、相册、定位、本地网络（自部署服务器在局域网时，WebView 访问会触发授权）。
