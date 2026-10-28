@@ -188,6 +188,8 @@ export const BridgeWebView = forwardRef<BridgeWebViewHandle, BridgeWebViewProps>
       allowsBackForwardNavigationGestures={false}
       bounces={false}
       overScrollMode="never"
+      // 不设时新架构在 iOS 传 0，手指一抬滚动立即停止（无惯性）；仅 iOS 会把 "normal" 转成数值，Android 收到字符串会崩溃
+      decelerationRate={Platform.OS === 'ios' ? 'normal' : undefined}
       // 不设 textZoom：eeui ExtendWebView 未调用 setTextZoom，保持 WebView 默认的系统字体缩放行为
       // 对齐 eeui ExtendWebView MIXED_CONTENT_ALWAYS_ALLOW：HTTPS 外站/微应用里的 HTTP 子资源不被拦截
       mixedContentMode="always"
